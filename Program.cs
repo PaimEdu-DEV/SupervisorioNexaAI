@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection("Mqtt"));
+builder.Services.Configure<AiDiagnosticOptions>(builder.Configuration.GetSection("AiDiagnostic"));
 
 builder.Services.AddDbContext<SupervisorioDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -30,6 +31,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<MqttConsumerService>();
 builder.Services.AddHostedService<IndustrialDiagnosticService>();
 builder.Services.AddScoped<TagValueService>();
+builder.Services.AddHttpClient<AiDiagnosticClient>();
+builder.Services.AddSingleton<MachineComponentMap>();
+builder.Services.AddSingleton<AssistantConversationMemory>();
+builder.Services.AddScoped<IndustrialAgentOrchestrator>();
 
 var app = builder.Build();
 

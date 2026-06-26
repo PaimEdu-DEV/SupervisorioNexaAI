@@ -1,5 +1,7 @@
 bin/
 obj/
+.build-check/
+.venv/
 
 *.db
 *.db-shm
@@ -15,6 +17,8 @@ obj/
 node_modules/
 dist/
 build/
+__pycache__/
+*.py[cod]
 
 *.user
 *.suo

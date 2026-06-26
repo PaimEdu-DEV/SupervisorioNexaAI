@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Supervisorio SIMMAQ NXA</title>
+  <title>Supervisorio Nexa AI Version 2.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
       <div class="brand">
         <img src="img/LOGO-NEXA.png" alt="NEXA">
         <div>
-          <strong>SIMMAQ NXA</strong>
+          <strong>SIMMAQ NEXA VERSÃO 2.0</strong>
           <span>Supervisorio Industrial</span>
         </div>
       </div>
@@ -25,8 +25,8 @@
           <span class="dot"></span>
           <strong>API</strong>
         </div>
-        <button class="ai-button" id="assistantButton" type="button" aria-label="Abrir Assistente IA">
-          <img src="img/ChatGPT%20Image%2025%20de%20jun.%20de%202026%2C%2016_55_42.png" alt="Assistente IA">
+        <button class="ai-button" id="assistantButton" type="button" aria-label="Abrir Nexa AI">
+          <img src="img/ChatGPT%20Image%2025%20de%20jun.%20de%202026%2C%2016_55_42.png" alt="Nexa AI">
           <strong id="diagnosticBadge">0</strong>
         </button>
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="Alternar tema">
@@ -110,6 +110,8 @@
         </div>
 
         <div class="machine-view">
+          <div class="component-highlight" id="componentHighlight" aria-hidden="true"></div>
+          <div class="component-marker" id="componentMarker" aria-hidden="true"></div>
           <img src="img/BancadaCPe%C3%A7a.png-removebg-preview.png" alt="Bancada SIMMAQ NXA">
         </div>
       </section>
@@ -136,10 +138,10 @@
   <aside class="assistant-drawer" id="assistantDrawer" aria-hidden="true">
     <div class="assistant-header">
       <div>
-        <span>Assistente IA</span>
-        <strong>Diagnostico Industrial</strong>
+        <span>Nexa AI</span>
+        <strong>Agente Industrial</strong>
       </div>
-      <button id="assistantClose" type="button" aria-label="Fechar Assistente IA">X</button>
+      <button id="assistantClose" type="button" aria-label="Fechar Nexa AI">X</button>
     </div>
 
     <div class="diagnostic-alert" id="diagnosticAlert">
@@ -149,7 +151,7 @@
 
     <div class="chat-history" id="chatHistory">
       <div class="message assistant">
-        <strong>Assistente IA</strong>
+        <strong>Nexa AI</strong>
         <p>Estou analisando a maquina continuamente. Quando houver uma anomalia, o alerta aparecera aqui.</p>
       </div>
     </div>
@@ -158,6 +160,29 @@
       <input id="chatInput" type="text" placeholder="Pergunte sobre falhas, sensores, atuadores ou alarmes">
       <button type="submit">Enviar</button>
     </form>
+  </aside>
+
+  <aside class="inspection-panel" id="inspectionPanel" aria-hidden="true">
+    <div class="assistant-header">
+      <div>
+        <span>Inspeção Guiada</span>
+        <strong id="inspectionTitle">Componente</strong>
+      </div>
+      <button id="inspectionClose" type="button" aria-label="Fechar inspeção">X</button>
+    </div>
+    <div class="diagnostic-alert">
+      <strong id="inspectionTag">Tag</strong>
+      <span id="inspectionDescription">Estado atual e orientação da IA.</span>
+    </div>
+    <div class="inspection-step">
+      <span id="inspectionStepLabel">Passo 1</span>
+      <p id="inspectionStepText">Verifique o LED do componente indicado.</p>
+      <div class="inspection-actions">
+        <button type="button" data-inspection-answer="done">Concluído</button>
+        <button type="button" data-inspection-answer="yes">Sim</button>
+        <button type="button" data-inspection-answer="no">Não</button>
+      </div>
+    </div>
   </aside>
 
   <script src="app.js"></script>
