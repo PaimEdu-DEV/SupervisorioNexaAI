@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://localhost:11434/api/chat")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
 OUT_OF_CONTEXT_ANSWER = "Sou um Assistente Inteligente especializado exclusivamente nesta máquina industrial."
 
 app = FastAPI(title="ai-diagnostic-service", version="2.0.0")

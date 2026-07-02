@@ -343,6 +343,21 @@ button {
     linear-gradient(135deg, #06182b 0%, #0a2d4d 46%, #04101f 100%);
 }
 
+.machine-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at center, transparent 20%, rgba(0, 0, 0, .62) 72%);
+  transition: opacity .32s ease;
+}
+
+.machine-view.sensor-focus::after {
+  opacity: 1;
+}
+
 .component-highlight {
   position: absolute;
   inset: 22% 18% 15%;
@@ -382,12 +397,206 @@ button {
 
 .machine-view img {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   width: min(100%, 1120px);
   height: min(100%, 690px);
   object-fit: contain;
   filter: drop-shadow(0 24px 30px rgba(0, 23, 50, .32));
   animation: machineIn .45s ease-out both;
+  transition: opacity .32s ease, transform .42s cubic-bezier(.2, .78, .2, 1), filter .32s ease;
+}
+
+.machine-view.sensor-focus img {
+  width: min(100%, 980px);
+  height: min(100%, 720px);
+  opacity: .96;
+  transform: scale(1);
+  filter: saturate(1.08) contrast(1.08) drop-shadow(0 30px 42px rgba(0, 0, 0, .48));
+  animation: sensorZoomIn .42s cubic-bezier(.2, .78, .2, 1) both;
+}
+
+.sensor-overlay {
+  position: absolute;
+  inset: 12px 22px 20px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.sensor-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: #9aa8b9;
+  background: currentColor;
+  box-shadow: 0 0 18px currentColor;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.sensor-marker span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid currentColor;
+  animation: pulseSensor 1.45s infinite;
+}
+
+.sensor-marker strong {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 7px);
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  border-radius: 6px;
+  color: #eef6ff;
+  background: rgba(4, 14, 26, .82);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.sensor-marker.ok {
+  color: #55ff7a;
+}
+
+.sensor-marker.fault {
+  color: #ff4a4a;
+}
+
+.sensor-marker.idle {
+  color: #8ea0b5;
+}
+
+.sensor-marker.selected {
+  width: 22px;
+  height: 22px;
+}
+
+.sensor-marker.selected strong {
+  top: calc(100% + 10px);
+  padding: 6px 10px;
+  font-size: 16px;
+  background: rgba(3, 11, 20, .92);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .32);
+}
+
+.sensor-focus .sensor-marker:not(.selected) {
+  display: none;
+}
+
+.sensor-back {
+  position: absolute;
+  left: 22px;
+  top: 18px;
+  z-index: 5;
+  display: none;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 7px;
+  color: var(--text);
+  background: rgba(7, 21, 36, .84);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.machine-view.sensor-focus .sensor-back {
+  display: inline-flex;
+}
+
+.sensor-detail-card {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 5;
+  display: none;
+  width: min(330px, calc(100% - 36px));
+  max-height: calc(100% - 88px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  border-radius: 8px;
+  background: rgba(5, 17, 31, .88);
+  box-shadow: 0 26px 58px rgba(0, 0, 0, .42);
+  backdrop-filter: blur(14px);
+}
+
+.machine-view.sensor-focus .sensor-detail-card {
+  display: block;
+  animation: detailCardIn .28s ease-out both;
+}
+
+.sensor-detail-card > span,
+.sensor-detail-card div > span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+
+.sensor-detail-card > strong {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--text);
+  font-size: 26px;
+}
+
+.sensor-detail-card dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.sensor-detail-card dl div {
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .04);
+}
+
+.sensor-detail-card dt {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+
+.sensor-detail-card dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.sensor-detail-card.ok dd#sensorDetailStatus {
+  color: #55ff7a;
+}
+
+.sensor-detail-card.fault dd#sensorDetailStatus {
+  color: #ff6565;
+}
+
+.sensor-detail-card p {
+  color: var(--text);
+  line-height: 1.45;
+  margin: 0 0 13px;
+}
+
+.sensor-detail-card ul {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 13px 16px;
+  padding: 0;
+  color: #d9e7f7;
+  font-size: 12px;
+}
 }
 
 .tag-list,
@@ -707,6 +916,43 @@ button {
   }
 }
 
+@keyframes sensorZoomIn {
+  from {
+    opacity: .45;
+    transform: translateY(10px) scale(1.05);
+  }
+  to {
+    opacity: .96;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulseSensor {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: .28;
+    transform: scale(2.15);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.35);
+  }
+}
+
+@keyframes detailCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes alertPulse {
   0%, 100% {
     box-shadow: 0 0 0 0 rgba(255, 91, 111, .0);
@@ -749,6 +995,12 @@ button {
 
   .machine-stage {
     min-height: 560px;
+  }
+
+  .sensor-detail-card {
+    right: 12px;
+    bottom: 12px;
+    width: min(360px, calc(100% - 24px));
   }
 }
 

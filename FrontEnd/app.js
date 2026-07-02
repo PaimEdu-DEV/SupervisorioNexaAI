@@ -1,6 +1,197 @@
-const API_BASE = window.location.port === "5500"
+const isLiveServer = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  && /^55\d\d$/.test(window.location.port);
+
+const API_BASE = isLiveServer || window.location.protocol === "file:"
   ? "http://localhost:5081"
   : window.location.origin;
+
+const MACHINE_OVERVIEW_IMAGE = "img/BancadaCPe%C3%A7a.png-removebg-preview.png";
+
+const SENSOR_IMAGES = {
+  left: "img/focus/left-focus.png",
+  conveyor: "img/focus/conveyor-focus.png",
+  right: "img/focus/right-focus.png"
+};
+
+// Cadastro central dos sensores. Para adicionar ou ajustar sensores, edite apenas este objeto.
+const sensors = {
+  DI0: {
+    id: "DI0",
+    name: "Sensor Capacitivo - Entrada",
+    type: "Sensor capacitivo",
+    area: "Mesa esquerda",
+    componentId: "sensor_entry_capacitive",
+    tagNames: ["Sensors.EntrySlotCapacitive", "Sensors.Entry.Capacitive"],
+    detailImage: SENSOR_IMAGES.left,
+    overviewPosition: { x: 22, y: 58 },
+    position: { x: 72, y: 53 },
+    description: "Detecta a presenca de peca no slot de entrada da bancada.",
+    failures: ["Peca fora da area de deteccao", "Sensor desalinhado", "Cabo desconectado", "Entrada digital sem sinal"],
+    recommendations: ["Verifique o LED do sensor", "Confirme o sinal DI0 no CLP", "Limpe e reposicione a peca no slot"],
+    aliases: ["entrada", "slot de entrada", "sensor de entrada", "peca na entrada"]
+  },
+  DI1: {
+    id: "DI1",
+    name: "Sensor Magnetico - Eixo X Recuado",
+    type: "Sensor magnetico",
+    area: "Mesa esquerda",
+    componentId: "sensor_axis_x_retracted",
+    tagNames: ["Sensors.AxisXRetracted", "Sensors.AxisX.Retracted"],
+    detailImage: SENSOR_IMAGES.left,
+    overviewPosition: { x: 30, y: 42 },
+    position: { x: 72, y: 55 },
+    description: "Confirma que o eixo X voltou para a posicao recuada.",
+    failures: ["Sensor desalinhado", "Ima do cilindro fora de posicao", "Cabo com mau contato", "Entrada digital sem sinal"],
+    recommendations: ["Acione o eixo X manualmente", "Confira se o LED muda no fim de curso", "Meça DI1 no CLP"],
+    aliases: ["eixo x recuado", "sensor da esquerda", "sensor indutivo da esquerda", "mesa esquerda"]
+  },
+  DI2: {
+    id: "DI2",
+    name: "Sensor Magnetico - Eixo X Avancado",
+    type: "Sensor magnetico",
+    area: "Mesa esquerda",
+    componentId: "sensor_axis_x_advanced",
+    tagNames: ["Sensors.AxisXAdvanced", "Sensors.AxisX.Advanced"],
+    detailImage: SENSOR_IMAGES.left,
+    overviewPosition: { x: 39, y: 42 },
+    position: { x: 58, y: 44 },
+    description: "Confirma que o eixo X chegou na posicao avancada.",
+    failures: ["Cilindro nao avancou", "Sensor fora da faixa do ima", "Baixa pressao pneumatica", "Sinal digital interrompido"],
+    recommendations: ["Verifique pressao e valvula do eixo X", "Ajuste a posicao do sensor", "Compare DI2 com o movimento real"]
+  },
+  DI3: {
+    id: "DI3",
+    name: "Sensor Magnetico - Eixo Y Recuado",
+    type: "Sensor magnetico",
+    area: "Mesa direita",
+    componentId: "sensor_axis_y_retracted",
+    tagNames: ["Sensors.AxisYRetracted", "Sensors.AxisY.Retracted"],
+    detailImage: SENSOR_IMAGES.right,
+    overviewPosition: { x: 61, y: 42 },
+    position: { x: 80, y: 32 },
+    description: "Confirma que o eixo Y esta recolhido na mesa direita.",
+    failures: ["Sensor desalinhado", "Cabo solto", "Cilindro travado", "Entrada DI3 sem sinal"],
+    recommendations: ["Confira o LED do sensor", "Teste o recuo do eixo Y", "Verifique o conector do sensor"],
+    aliases: ["eixo y recuado"]
+  },
+  DI4: {
+    id: "DI4",
+    name: "Sensor Magnetico - Eixo Y Avancado",
+    type: "Sensor magnetico",
+    area: "Mesa direita",
+    componentId: "sensor_axis_y_advanced",
+    tagNames: ["Sensors.AxisYAdvanced", "Sensors.AxisY.Advanced"],
+    detailImage: SENSOR_IMAGES.right,
+    overviewPosition: { x: 70, y: 42 },
+    position: { x: 58, y: 45 },
+    description: "Confirma o avancamento do eixo Y durante o ciclo da bancada.",
+    failures: ["Eixo Y nao chegou ao fim de curso", "Sensor fora de posicao", "Cabo com mau contato", "Entrada DI4 nao recebendo sinal"],
+    recommendations: ["Acione o eixo Y em manual", "Confirme se DI4 muda de estado", "Verifique valvula, cilindro e alinhamento"],
+    aliases: ["eixo y avancado", "sensor da mesa direita", "mesa direita"]
+  },
+  DI5: {
+    id: "DI5",
+    name: "Sensor Magnetico - Eixo Z Recuado",
+    type: "Sensor magnetico",
+    area: "Mesa direita",
+    componentId: "sensor_axis_z_retracted",
+    tagNames: ["Sensors.AxisZRetracted", "Sensors.AxisZ.Retracted"],
+    detailImage: SENSOR_IMAGES.right,
+    overviewPosition: { x: 50, y: 35 },
+    position: { x: 25, y: 32 },
+    description: "Confirma que o eixo Z esta na posicao recuada.",
+    failures: ["Sensor deslocado", "Eixo Z preso", "Falha na valvula", "Entrada DI5 sem sinal"],
+    recommendations: ["Verifique movimento do eixo Z", "Ajuste o sensor magnetico", "Confira sinal no CLP"]
+  },
+  DI6: {
+    id: "DI6",
+    name: "Sensor Magnetico - Eixo Z Avancado",
+    type: "Sensor magnetico",
+    area: "Mesa direita",
+    componentId: "sensor_axis_z_advanced",
+    tagNames: ["Sensors.AxisZAdvanced", "Sensors.AxisZ.Advanced"],
+    detailImage: SENSOR_IMAGES.right,
+    overviewPosition: { x: 50, y: 43 },
+    position: { x: 31, y: 43 },
+    description: "Confirma que o eixo Z chegou na posicao avancada.",
+    failures: ["Eixo Z nao avancou", "Baixa pressao", "Sensor sem alimentacao", "Entrada DI6 travada"],
+    recommendations: ["Teste a descida/subida do eixo Z", "Confira pressao pneumatica", "Valide DI6 no CLP"]
+  },
+  DI7: {
+    id: "DI7",
+    name: "Sensor Indutivo",
+    type: "Sensor indutivo",
+    area: "Esteira central",
+    componentId: "sensor_inductive",
+    tagNames: ["Sensors.Inductive", "Sensors.Classification.Inductive"],
+    detailImage: SENSOR_IMAGES.conveyor,
+    overviewPosition: { x: 48, y: 56 },
+    position: { x: 89, y: 30 },
+    description: "Detecta caracteristica metalica da peca na regiao de classificacao.",
+    failures: ["Peca metalica fora da area", "Sensor desalinhado", "Distancia de deteccao incorreta", "Entrada DI7 sem sinal"],
+    recommendations: ["Aproxime uma peca metalica para teste", "Confira distancia do sensor", "Verifique LED e cabo"],
+    aliases: ["sensor indutivo", "indutivo"]
+  },
+  DI8: {
+    id: "DI8",
+    name: "Sensor Optico Reflexivo",
+    type: "Sensor fotoeletrico",
+    area: "Esteira central",
+    componentId: "sensor_optical_reflective",
+    tagNames: ["Sensors.OpticalReflexive", "Sensors.Classification.OpticalReflective"],
+    detailImage: SENSOR_IMAGES.conveyor,
+    overviewPosition: { x: 54, y: 50 },
+    position: { x: 77, y: 29 },
+    description: "Detecta a presenca/passagem da peca na esteira transportadora.",
+    failures: ["Sensor sujo", "Reflexo insuficiente", "Peca mal posicionada", "Cabo com mau contato", "Entrada DI8 sem sinal"],
+    recommendations: ["Limpe a lente", "Teste com peca na frente do sensor", "Confira alinhamento e entrada DI8"],
+    aliases: ["sensor da esteira", "esteira", "transportador", "peca na esteira"]
+  },
+  DI9: {
+    id: "DI9",
+    name: "Sensor Optico com Espelho 1",
+    type: "Sensor fotoeletrico com refletor",
+    area: "Esteira central",
+    componentId: "sensor_optical_mirror_1",
+    tagNames: ["Sensors.OpticalMirror1", "Sensors.Classification.OpticalMirror1"],
+    detailImage: SENSOR_IMAGES.conveyor,
+    overviewPosition: { x: 39, y: 51 },
+    position: { x: 63, y: 34 },
+    description: "Monitora a passagem da peca usando barreira/reflexao com espelho.",
+    failures: ["Espelho desalinhado", "Lente suja", "Reflexo fraco", "Entrada DI9 instavel"],
+    recommendations: ["Alinhe sensor e espelho", "Limpe lente/refletor", "Observe se o LED comuta durante a passagem"]
+  },
+  DI10: {
+    id: "DI10",
+    name: "Sensor Optico com Espelho 2",
+    type: "Sensor fotoeletrico com refletor",
+    area: "Esteira central",
+    componentId: "sensor_optical_mirror_2",
+    tagNames: ["Sensors.OpticalMirror2", "Sensors.Classification.OpticalMirror2"],
+    detailImage: SENSOR_IMAGES.conveyor,
+    overviewPosition: { x: 63, y: 51 },
+    position: { x: 27, y: 34 },
+    description: "Segundo sensor optico com espelho usado na area de classificacao da esteira.",
+    failures: ["Espelho fora de alinhamento", "Sensor sujo", "Peca nao interrompe o feixe", "Entrada DI10 nao acionou"],
+    recommendations: ["Alinhe o refletor", "Limpe o conjunto optico", "Confira DI10 no CLP durante o ciclo"],
+    aliases: ["sensor di10 nao acionou", "di10 nao acionou"]
+  },
+  DI11: {
+    id: "DI11",
+    name: "Sensor Capacitivo - Saida",
+    type: "Sensor capacitivo",
+    area: "Mesa direita",
+    componentId: "sensor_exit_capacitive",
+    tagNames: ["Sensors.ExitSlotCapacitive", "Sensors.Exit.Capacitive"],
+    detailImage: SENSOR_IMAGES.right,
+    overviewPosition: { x: 77, y: 58 },
+    position: { x: 36, y: 67 },
+    description: "Detecta a peca no slot de saida da bancada.",
+    failures: ["Peca nao chegou na saida", "Sensor desalinhado", "Cabo solto", "Entrada DI11 sem sinal"],
+    recommendations: ["Verifique se ha peca no slot de saida", "Confira LED do sensor", "Teste a entrada DI11"],
+    aliases: ["saida", "slot de saida", "sensor de saida"]
+  }
+};
 
 const els = {
   apiSignal: document.querySelector("#apiSignal"),
@@ -33,6 +224,18 @@ const els = {
   sensorCount: document.querySelector("#sensorCount"),
   alarmList: document.querySelector("#alarmList"),
   alarmCount: document.querySelector("#alarmCount"),
+  machineView: document.querySelector("#machineView"),
+  machineImage: document.querySelector("#machineImage"),
+  sensorOverlay: document.querySelector("#sensorOverlay"),
+  sensorBack: document.querySelector("#sensorBack"),
+  sensorDetailCard: document.querySelector("#sensorDetailCard"),
+  sensorDetailArea: document.querySelector("#sensorDetailArea"),
+  sensorDetailTitle: document.querySelector("#sensorDetailTitle"),
+  sensorDetailType: document.querySelector("#sensorDetailType"),
+  sensorDetailStatus: document.querySelector("#sensorDetailStatus"),
+  sensorDetailDescription: document.querySelector("#sensorDetailDescription"),
+  sensorDetailFailures: document.querySelector("#sensorDetailFailures"),
+  sensorDetailRecommendations: document.querySelector("#sensorDetailRecommendations"),
   componentHighlight: document.querySelector("#componentHighlight"),
   componentMarker: document.querySelector("#componentMarker"),
   inspectionPanel: document.querySelector("#inspectionPanel"),
@@ -52,6 +255,10 @@ let dashboardInitialized = false;
 let knownDiagnosticIds = new Set();
 let inspectionStep = 0;
 let assistantBusy = false;
+let selectedSensor = null;
+let sensorStatusByTag = {};
+let activeFaultSourceTags = new Set();
+let selectedSensorFaultIntent = false;
 
 if (!conversationId) {
   conversationId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
@@ -82,6 +289,143 @@ function setApiState(active) {
 function setConnection(dot, label, active) {
   dot.classList.toggle("online", active);
   label.textContent = active ? "Online" : "Offline";
+}
+
+function normalizeText(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+}
+
+function detectSensorFromMessage(message) {
+  const normalized = normalizeText(message);
+  const directMatch = Object.keys(sensors).find((sensorId) =>
+    new RegExp(`(^|\\W)${sensorId}(\\W|$)`).test(normalized)
+  );
+
+  if (directMatch) {
+    return sensors[directMatch];
+  }
+
+  const byAliasOrName = Object.values(sensors).find((sensor) =>
+    (sensor.aliases || []).some((alias) => normalized.includes(normalizeText(alias))) ||
+    normalized.includes(normalizeText(sensor.name))
+  );
+
+  if (byAliasOrName) {
+    return byAliasOrName;
+  }
+
+  return Object.values(sensors).find((sensor) => normalized.includes(normalizeText(sensor.area)));
+}
+
+function sensorFromComponent(componentId) {
+  if (!componentId) return null;
+  return Object.values(sensors).find((sensor) =>
+    sensor.componentId === componentId ||
+    sensor.tagNames.some((tagName) => tagName === componentId) ||
+    sensor.id === componentId
+  );
+}
+
+function isFaultQuestion(message) {
+  return normalizeText(message).match(/FALHA|PROBLEMA|ERRO|NAO ACIONOU|NÃO ACIONOU|TRAVOU|DEFEITO/) !== null;
+}
+
+function getSensorState(sensor) {
+  const matchingTags = sensor.tagNames
+    .map((tagName) => sensorStatusByTag[tagName])
+    .filter(Boolean);
+  const hasFault = selectedSensorFaultIntent ||
+    sensor.tagNames.some((tagName) => activeFaultSourceTags.has(tagName)) ||
+    activeFaultSourceTags.has(sensor.componentId);
+  const isActive = matchingTags.some((tag) => isTrue(tag.currentValue));
+
+  if (hasFault) {
+    return { key: "fault", label: "Falha / verificar", active: isActive };
+  }
+
+  if (isActive) {
+    return { key: "ok", label: "Acionado / OK", active: true };
+  }
+
+  return { key: "idle", label: "Inativo", active: false };
+}
+
+function createSensorMarker(sensor, mode) {
+  const state = getSensorState(sensor);
+  const position = mode === "detail" ? sensor.position : sensor.overviewPosition;
+  const marker = document.createElement("button");
+  marker.type = "button";
+  marker.className = `sensor-marker ${state.key} ${mode === "detail" ? "selected" : ""}`;
+  marker.style.left = `${position.x}%`;
+  marker.style.top = `${position.y}%`;
+  marker.setAttribute("aria-label", `${sensor.id} - ${sensor.name}`);
+  marker.innerHTML = `<span></span><strong>${sensor.id}</strong>`;
+  marker.addEventListener("click", () => {
+    selectSensor(sensor, { fault: state.key === "fault", openAssistant: false });
+  });
+  return marker;
+}
+
+function renderSensorOverlay() {
+  els.sensorOverlay.innerHTML = "";
+
+  if (selectedSensor) {
+    els.sensorOverlay.appendChild(createSensorMarker(selectedSensor, "detail"));
+    return;
+  }
+
+  Object.values(sensors).forEach((sensor) => {
+    els.sensorOverlay.appendChild(createSensorMarker(sensor, "overview"));
+  });
+}
+
+function renderSensorDetail(sensor) {
+  const state = getSensorState(sensor);
+  els.sensorDetailArea.textContent = sensor.area;
+  els.sensorDetailTitle.textContent = sensor.id;
+  els.sensorDetailType.textContent = sensor.type;
+  els.sensorDetailStatus.textContent = state.label;
+  els.sensorDetailDescription.textContent = sensor.description;
+  els.sensorDetailFailures.innerHTML = sensor.failures.map((item) => `<li>${item}</li>`).join("");
+  els.sensorDetailRecommendations.innerHTML = sensor.recommendations.map((item) => `<li>${item}</li>`).join("");
+  els.sensorDetailCard.classList.toggle("fault", state.key === "fault");
+  els.sensorDetailCard.classList.toggle("ok", state.key === "ok");
+  els.sensorDetailCard.setAttribute("aria-hidden", "false");
+}
+
+function selectSensor(sensor, options = {}) {
+  selectedSensor = sensor;
+  selectedSensorFaultIntent = Boolean(options.fault);
+  currentComponentId = sensor.componentId;
+
+  els.machineImage.src = sensor.detailImage;
+  els.machineImage.alt = `${sensor.area} - ${sensor.name}`;
+  els.machineView.classList.add("sensor-focus");
+  els.machineView.classList.toggle("fault", getSensorState(sensor).key === "fault");
+  renderSensorDetail(sensor);
+  renderSensorOverlay();
+}
+
+function resetSensorView() {
+  selectedSensor = null;
+  selectedSensorFaultIntent = false;
+  els.machineImage.src = MACHINE_OVERVIEW_IMAGE;
+  els.machineImage.alt = "Bancada SIMMAQ NXA";
+  els.machineView.classList.remove("sensor-focus", "fault");
+  els.sensorDetailCard.classList.remove("fault", "ok");
+  els.sensorDetailCard.setAttribute("aria-hidden", "true");
+  renderSensorOverlay();
+}
+
+function buildSensorQuestion(question, sensor) {
+  const state = getSensorState(sensor);
+  return `O usuario perguntou sobre o sensor ${sensor.id}. Pergunta original: "${question}". ` +
+    `Contexto visual: nome=${sensor.name}; tipo=${sensor.type}; area=${sensor.area}; status=${state.label}; funcao=${sensor.description}; ` +
+    `possiveis falhas=${sensor.failures.join(", ")}; recomendacoes=${sensor.recommendations.join(", ")}. ` +
+    "Responda em portugues, direto e tecnico, explicando funcao, localizacao, status atual e o que verificar.";
 }
 
 async function loadComponentMap() {
@@ -170,6 +514,12 @@ function renderDiagnostics(diagnostics) {
 
 function highlightComponent(componentId) {
   if (!componentId) {
+    return;
+  }
+
+  const sensor = sensorFromComponent(componentId);
+  if (sensor) {
+    selectSensor(sensor, { fault: activeFaultSourceTags.has(componentId) });
     return;
   }
 
@@ -281,6 +631,10 @@ function addStructuredMessage(role, data) {
 
   if (componentId) {
     currentComponentId = componentId;
+    const sensor = sensorFromComponent(componentId);
+    if (sensor) {
+      selectSensor(sensor, { fault: String(data.severity || "").toLowerCase() === "critical" || String(data.severity || "").toLowerCase() === "warning" });
+    }
   }
 
   els.chatHistory.appendChild(message);
@@ -340,6 +694,11 @@ function setAssistantBusy(active) {
 async function askAssistant(question) {
   if (assistantBusy) return;
 
+  const detectedSensor = detectSensorFromMessage(question);
+  if (detectedSensor) {
+    selectSensor(detectedSensor, { fault: isFaultQuestion(question) });
+  }
+
   addMessage("user", question);
   const thinkingMessage = addThinkingMessage();
   setAssistantBusy(true);
@@ -349,9 +708,9 @@ async function askAssistant(question) {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
-        question,
+        question: detectedSensor ? buildSensorQuestion(question, detectedSensor) : question,
         conversationId,
-        componentId: currentComponentId,
+        componentId: detectedSensor?.componentId || currentComponentId,
         mode: "diagnostic"
       })
     });
@@ -462,10 +821,16 @@ async function loadDashboard() {
     setConnection(els.mqttDot, els.mqttState, data.communication.mqttConnected);
 
     const sensors = data.sensors || [];
+    sensorStatusByTag = Object.fromEntries(sensors.map((tag) => [tag.name, tag]));
+    activeFaultSourceTags = new Set((data.pendingDiagnostics || []).map((diagnostic) => diagnostic.sourceTag).filter(Boolean));
     renderTagList(els.sensorsList, sensors);
     renderTagList(els.actuatorsList, data.actuators || []);
     renderAlarms(data.activeAlarms || []);
     renderDiagnostics(data.pendingDiagnostics || []);
+    if (selectedSensor) {
+      renderSensorDetail(selectedSensor);
+    }
+    renderSensorOverlay();
 
     const activeSensors = sensors.filter((tag) => isTrue(tag.currentValue)).length;
     els.sensorCount.textContent = `${activeSensors} ativos`;
@@ -495,6 +860,8 @@ els.assistantClose.addEventListener("click", () => {
   els.assistantDrawer.setAttribute("aria-hidden", "true");
 });
 
+els.sensorBack.addEventListener("click", resetSensorView);
+
 els.inspectionClose.addEventListener("click", () => {
   els.inspectionPanel.classList.remove("open");
   els.inspectionPanel.setAttribute("aria-hidden", "true");
@@ -518,6 +885,7 @@ els.chatForm.addEventListener("submit", async (event) => {
 
 setTheme(localStorage.getItem("simmaq-theme") || "dark");
 tickClock();
+renderSensorOverlay();
 loadComponentMap();
 loadDashboard();
 setInterval(tickClock, 1000);

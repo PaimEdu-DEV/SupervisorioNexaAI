@@ -109,10 +109,35 @@
           </div>
         </div>
 
-        <div class="machine-view">
+        <div class="machine-view" id="machineView">
           <div class="component-highlight" id="componentHighlight" aria-hidden="true"></div>
           <div class="component-marker" id="componentMarker" aria-hidden="true"></div>
-          <img src="img/BancadaCPe%C3%A7a.png-removebg-preview.png" alt="Bancada SIMMAQ NXA">
+          <img id="machineImage" src="img/BancadaCPe%C3%A7a.png-removebg-preview.png" alt="Bancada SIMMAQ NXA">
+          <div class="sensor-overlay" id="sensorOverlay" aria-hidden="true"></div>
+          <button class="sensor-back" id="sensorBack" type="button">Voltar</button>
+          <aside class="sensor-detail-card" id="sensorDetailCard" aria-hidden="true">
+            <span id="sensorDetailArea">Sensor</span>
+            <strong id="sensorDetailTitle">DI1</strong>
+            <dl>
+              <div>
+                <dt>Tipo</dt>
+                <dd id="sensorDetailType">-</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd id="sensorDetailStatus">-</dd>
+              </div>
+            </dl>
+            <p id="sensorDetailDescription"></p>
+            <div>
+              <span>Possíveis falhas</span>
+              <ul id="sensorDetailFailures"></ul>
+            </div>
+            <div>
+              <span>Recomendações</span>
+              <ul id="sensorDetailRecommendations"></ul>
+            </div>
+          </aside>
         </div>
       </section>
 

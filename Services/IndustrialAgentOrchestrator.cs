@@ -41,11 +41,18 @@ public class IndustrialAgentOrchestrator(
         var brain = BrainFor(intent);
         var context = await BuildContextAsync(intent, request, detectedComponent, technicalComponent, cancellationToken);
 
+        if (technicalComponent is not null && detectedComponent is not null)
+        {
+            var sensorResponse = BuildFallback(intent, brain, detectedComponent, technicalComponent, context, request.Question);
+            conversationMemory.Update(request.ConversationId, request.Question, sensorResponse.Message, sensorResponse.ComponentId);
+            return sensorResponse;
+        }
+
         var payload = new
         {
             question = request.Question,
             mode = request.Mode,
-            model = "qwen2.5:7b",
+            model = "llama3.2:3b",
             intent = IntentValue(intent),
             brain = BrainValue(brain),
             expectedResponse = "structured_json",
@@ -68,7 +75,7 @@ public class IndustrialAgentOrchestrator(
                 var response = FromAiResult(result, intent, brain, detectedComponent, context);
                 if (ShouldUseDeterministicFallback(response, intent))
                 {
-                    response = BuildFallback(intent, brain, detectedComponent, technicalComponent, context);
+                    response = BuildFallback(intent, brain, detectedComponent, technicalComponent, context, request.Question);
                 }
 
                 conversationMemory.Update(request.ConversationId, request.Question, response.Message, response.ComponentId);
@@ -80,7 +87,7 @@ public class IndustrialAgentOrchestrator(
             logger.LogWarning(ex, "Falha ao consultar ai-diagnostic-service no IndustrialAgentOrchestrator.");
         }
 
-        var fallback = BuildFallback(intent, brain, detectedComponent, technicalComponent, context);
+        var fallback = BuildFallback(intent, brain, detectedComponent, technicalComponent, context, request.Question);
         conversationMemory.Update(request.ConversationId, request.Question, fallback.Message, fallback.ComponentId);
         return fallback;
     }
@@ -174,9 +181,19 @@ public class IndustrialAgentOrchestrator(
             return AgentIntent.OutOfScope;
         }
 
+        if (IsGreeting(q) || IsStatusQuestion(q))
+        {
+            return AgentIntent.MachineInfo;
+        }
+
         if (ContainsAny(q, "onde fica", "localiza", "localizacao", "ver na maquina", "mostrar na maquina"))
         {
             return AgentIntent.VisualLocation;
+        }
+
+        if (ContainsAny(q, "falha", "parou", "alarme", "erro", "problema", "verificar", "diagnostico", "desligada", "travou", "anomalia", "inspecao", "conclusao", "nao acionou"))
+        {
+            return AgentIntent.Diagnostic;
         }
 
         if (ContainsAny(q, "modbus", "endereco", "tag", "entrada digital", "saida digital", "di", "do", "ao", "mw0", "mw1", "mw2", "mw5"))
@@ -194,16 +211,11 @@ public class IndustrialAgentOrchestrator(
             return AgentIntent.History;
         }
 
-        if (ContainsAny(q, "o que faz", "qual funcao", "funcao", "como funciona", "explique o ciclo", "classificacao", "esta maquina", "essa maquina", "bancada"))
+        if (ContainsAny(q, "o que faz", "oque faz", "que essa maquina faz", "qual funcao", "funcao", "como funciona", "explique o ciclo", "classificacao", "esta maquina", "essa maquina", "bancada"))
         {
             return hasComponentContext || ContainsAny(q, "sensor", "ventosa", "esteira", "cilindro", "botao")
                 ? AgentIntent.ComponentInfo
                 : AgentIntent.MachineInfo;
-        }
-
-        if (ContainsAny(q, "falha", "parou", "alarme", "erro", "problema", "verificar", "diagnostico", "desligada", "travou", "anomalia", "inspecao", "conclusao"))
-        {
-            return AgentIntent.Diagnostic;
         }
 
         if (hasComponentContext)
@@ -282,11 +294,13 @@ public class IndustrialAgentOrchestrator(
         AgentBrain brain,
         MachineComponent? component,
         TechnicalComponent? technicalComponent,
-        dynamic context)
+        dynamic context,
+        string question)
     {
         var message = intent switch
         {
-            AgentIntent.MachineInfo => MachineTechnicalKnowledge.MachineDescription.Trim(),
+            AgentIntent.MachineInfo when IsGreeting(Normalize(question)) || IsStatusQuestion(Normalize(question)) => BuildMachineStatusFallback(context),
+            AgentIntent.MachineInfo => BuildMachineExplanationFallback(),
             AgentIntent.ComponentInfo when technicalComponent is not null =>
                 $"{technicalComponent.Name}: {technicalComponent.Description}",
             AgentIntent.VisualLocation when component is not null =>
@@ -297,6 +311,8 @@ public class IndustrialAgentOrchestrator(
                 "Ainda nao existem dados de producao suficientes para responder essa pergunta. Para responder com precisao, preciso de historico de producao, contadores atualizados ou leituras registradas da esteira.",
             AgentIntent.History =>
                 "Ainda nao existem dados historicos suficientes para responder essa pergunta. Para responder, preciso de registros em MaintenanceHistory, DiagnosticNotifications ou historico de sensores.",
+            AgentIntent.Diagnostic when component is not null =>
+                $"{component.Name}: {component.Description} Se houver falha, verifique primeiro LED do sensor, alinhamento mecanico, cabo/conector, alimentacao e a entrada digital correspondente no CLP.",
             _ =>
                 "Nao existem dados suficientes para determinar a causa da falha."
         };
@@ -318,8 +334,8 @@ public class IndustrialAgentOrchestrator(
             ShowInspectButton = showInspection,
             QuickActions = BuildQuickActions(showHighlight, showInspection, brain),
             MissingData = intent is AgentIntent.ProductionQuery or AgentIntent.History
-                ? ["historico de producao ou manutencao insuficiente"]
-                : [],
+                ? new List<string> { "historico de producao ou manutencao insuficiente" }
+                : new List<string>(),
             UsedSources = SourcesFor(brain),
             Source = "industrial-agent-fallback"
         };
@@ -443,6 +459,48 @@ public class IndustrialAgentOrchestrator(
 
     private static bool ContainsAny(string value, params string[] terms) =>
         terms.Any(value.Contains);
+
+    private static bool IsGreeting(string value)
+    {
+        var cleaned = value.Trim(' ', '.', ',', '!', '?');
+        return cleaned is "oi" or "ola" or "olá" or "bom dia" or "boa tarde" or "boa noite";
+    }
+
+    private static bool IsStatusQuestion(string value) =>
+        ContainsAny(value, "status", "estado atual", "situacao", "como esta", "como ta", "esta online", "maquina ligada");
+
+    private static string BuildMachineExplanationFallback()
+    {
+        return $"{MachineTechnicalKnowledge.MachineDescription.Trim()} {MachineTechnicalKnowledge.OperationalCycle.Trim()}";
+    }
+
+    private static string BuildMachineStatusFallback(dynamic context)
+    {
+        var status = FindTagValue(context.machine, "Machine.Status") ?? "Parada";
+        var mode = FindTagValue(context.machine, "Machine.Mode") ?? "Manual";
+        var cycleTime = FindTagValue(context.machine, "Machine.CycleTimeCurrent") ?? "0";
+        var plc = FindTagValue(context.communication, "Communication.PlcConnected") ?? "false";
+        var mqtt = FindTagValue(context.communication, "Communication.MqttConnected") ?? "false";
+
+        return $"Estou online no supervisório. Estado atual da máquina: {status}. Modo: {mode}. Tempo de ciclo: {cycleTime}. Comunicação CLP: {ConnectionLabel(plc)}. MQTT: {ConnectionLabel(mqtt)}.";
+    }
+
+    private static string? FindTagValue(IEnumerable<object> tags, string name)
+    {
+        foreach (var tag in tags)
+        {
+            var type = tag.GetType();
+            var tagName = type.GetProperty("name")?.GetValue(tag)?.ToString();
+            if (string.Equals(tagName, name, StringComparison.OrdinalIgnoreCase))
+            {
+                return type.GetProperty("currentValue")?.GetValue(tag)?.ToString();
+            }
+        }
+
+        return null;
+    }
+
+    private static string ConnectionLabel(string value) => IsTrue(value) ? "online" : "offline";
 
     private static bool HasComponentKeyword(string question)
     {
