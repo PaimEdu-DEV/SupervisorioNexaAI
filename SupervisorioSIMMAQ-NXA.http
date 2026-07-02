@@ -1,0 +1,55 @@
+@SupervisorioSIMMAQ_NXA_HostAddress = http://localhost:5081
+
+GET {{SupervisorioSIMMAQ_NXA_HostAddress}}/api/machine-readings
+Accept: application/json
+
+###
+
+POST {{SupervisorioSIMMAQ_NXA_HostAddress}}/api/machine-readings
+Content-Type: application/json
+
+{
+  "machineCode": "NXA-001",
+  "tag": "temperatura_motor",
+  "value": 72.5,
+  "unit": "C",
+  "status": "Normal"
+}
+
+###
+
+GET {{SupervisorioSIMMAQ_NXA_HostAddress}}/api/machine-readings/latest
+Accept: application/json
+
+###
+
+GET {{SupervisorioSIMMAQ_NXA_HostAddress}}/api/tags/current
+Accept: application/json
+
+###
+
+GET {{SupervisorioSIMMAQ_NXA_HostAddress}}/api/dashboard/overview
+Accept: application/json
+
+###
+
+PUT {{SupervisorioSIMMAQ_NXA_HostAddress}}/api/tags/Sensors.EntrySlotCapacitive/value
+Content-Type: application/json
+
+{
+  "value": "true",
+  "source": "Postman"
+}
+
+###
+
+POST {{SupervisorioSIMMAQ_NXA_HostAddress}}/api/commands
+Content-Type: application/json
+
+{
+  "commandTag": "Commands.Start",
+  "value": "true",
+  "requestedBy": "Postman"
+}
+
+###

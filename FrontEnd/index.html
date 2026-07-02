@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supervisorio Nexa AI Version 2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="img/LOGO-NEXA.png" alt="NEXA">
+        <div>
+          <strong>SIMMAQ NEXA VERSÃO 2.0</strong>
+          <span>Supervisorio Industrial</span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="pill" id="apiSignal">
+          <span class="dot"></span>
+          <strong>API</strong>
+        </div>
+        <button class="ai-button" id="assistantButton" type="button" aria-label="Abrir Nexa AI">
+          <img src="img/ChatGPT%20Image%2025%20de%20jun.%20de%202026%2C%2016_55_42.png" alt="Nexa AI">
+          <strong id="diagnosticBadge">0</strong>
+        </button>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Alternar tema">
+          <span id="themeIcon">Escuro</span>
+        </button>
+        <div class="clock">
+          <strong id="currentTime">--:--:--</strong>
+          <span id="currentDate">--/--/----</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <aside class="left-rail">
+        <section class="panel status-panel">
+          <div class="panel-title">
+            <span>Maquina</span>
+            <strong id="machineStatus">Parada</strong>
+          </div>
+          <div class="status-grid">
+            <article>
+              <span>Modo</span>
+              <strong id="machineMode">Manual</strong>
+            </article>
+            <article>
+              <span>Ciclo</span>
+              <strong><b id="cycleTime">0</b>s</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <span>Comunicacao</span>
+          </div>
+          <div class="connection-list">
+            <div>
+              <span class="dot" id="plcDot"></span>
+              <strong>CLP</strong>
+              <small id="plcState">Offline</small>
+            </div>
+            <div>
+              <span class="dot" id="mqttDot"></span>
+              <strong>MQTT</strong>
+              <small id="mqttState">Offline</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel production-panel">
+          <div class="panel-title">
+            <span>Producao</span>
+          </div>
+          <div class="kpi-grid">
+            <article><span>Processadas</span><strong id="totalProcessed">0</strong></article>
+            <article><span>Aprovadas</span><strong id="totalApproved">0</strong></article>
+            <article><span>Rejeitadas</span><strong id="totalRejected">0</strong></article>
+            <article><span>Eficiencia</span><strong><b id="efficiency">0</b>%</strong></article>
+          </div>
+        </section>
+
+        <section class="panel alarms-panel">
+          <div class="panel-title">
+            <span>Alarmes</span>
+            <strong id="alarmCount">0 ativos</strong>
+          </div>
+          <div id="alarmList" class="alarm-list"></div>
+        </section>
+      </aside>
+
+      <section class="machine-stage">
+        <div class="machine-header">
+          <div>
+            <span>Bancada</span>
+            <strong>NXA - Celula Didatica</strong>
+          </div>
+          <div class="run-state" id="runIndicator">
+            <span class="dot"></span>
+            <strong>Standby</strong>
+          </div>
+        </div>
+
+        <div class="machine-view" id="machineView">
+          <div class="component-highlight" id="componentHighlight" aria-hidden="true"></div>
+          <div class="component-marker" id="componentMarker" aria-hidden="true"></div>
+          <img id="machineImage" src="img/BancadaCPe%C3%A7a.png-removebg-preview.png" alt="Bancada SIMMAQ NXA">
+          <div class="sensor-overlay" id="sensorOverlay" aria-hidden="true"></div>
+          <button class="sensor-back" id="sensorBack" type="button">Voltar</button>
+          <aside class="sensor-detail-card" id="sensorDetailCard" aria-hidden="true">
+            <span id="sensorDetailArea">Sensor</span>
+            <strong id="sensorDetailTitle">DI1</strong>
+            <dl>
+              <div>
+                <dt>Tipo</dt>
+                <dd id="sensorDetailType">-</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd id="sensorDetailStatus">-</dd>
+              </div>
+            </dl>
+            <p id="sensorDetailDescription"></p>
+            <div>
+              <span>Possíveis falhas</span>
+              <ul id="sensorDetailFailures"></ul>
+            </div>
+            <div>
+              <span>Recomendações</span>
+              <ul id="sensorDetailRecommendations"></ul>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <aside class="right-rail">
+        <section class="panel list-panel">
+          <div class="panel-title">
+            <span>Sensores</span>
+            <strong id="sensorCount">0 ativos</strong>
+          </div>
+          <div class="tag-list" id="sensorsList"></div>
+        </section>
+
+        <section class="panel list-panel">
+          <div class="panel-title">
+            <span>Atuadores</span>
+          </div>
+          <div class="tag-list" id="actuatorsList"></div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <aside class="assistant-drawer" id="assistantDrawer" aria-hidden="true">
+    <div class="assistant-header">
+      <div>
+        <span>Nexa AI</span>
+        <strong>Agente Industrial</strong>
+      </div>
+      <button id="assistantClose" type="button" aria-label="Fechar Nexa AI">X</button>
+    </div>
+
+    <div class="diagnostic-alert" id="diagnosticAlert">
+      <strong>Nenhum alerta pendente</strong>
+      <span>O motor de diagnostico esta monitorando a maquina.</span>
+    </div>
+
+    <div class="chat-history" id="chatHistory">
+      <div class="message assistant">
+        <strong>Nexa AI</strong>
+        <p>Estou analisando a maquina continuamente. Quando houver uma anomalia, o alerta aparecera aqui.</p>
+      </div>
+    </div>
+
+    <form class="chat-form" id="chatForm">
+      <input id="chatInput" type="text" placeholder="Pergunte sobre falhas, sensores, atuadores ou alarmes">
+      <button type="submit">Enviar</button>
+    </form>
+  </aside>
+
+  <aside class="inspection-panel" id="inspectionPanel" aria-hidden="true">
+    <div class="assistant-header">
+      <div>
+        <span>Inspeção Guiada</span>
+        <strong id="inspectionTitle">Componente</strong>
+      </div>
+      <button id="inspectionClose" type="button" aria-label="Fechar inspeção">X</button>
+    </div>
+    <div class="diagnostic-alert">
+      <strong id="inspectionTag">Tag</strong>
+      <span id="inspectionDescription">Estado atual e orientação da IA.</span>
+    </div>
+    <div class="inspection-step">
+      <span id="inspectionStepLabel">Passo 1</span>
+      <p id="inspectionStepText">Verifique o LED do componente indicado.</p>
+      <div class="inspection-actions">
+        <button type="button" data-inspection-answer="done">Concluído</button>
+        <button type="button" data-inspection-answer="yes">Sim</button>
+        <button type="button" data-inspection-answer="no">Não</button>
+      </div>
+    </div>
+  </aside>
+
+  <script src="app.js"></script>
+</body>
+</html>
