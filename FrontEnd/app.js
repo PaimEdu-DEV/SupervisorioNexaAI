@@ -8,190 +8,986 @@ const API_BASE = isLiveServer || window.location.protocol === "file:"
 const MACHINE_OVERVIEW_IMAGE = "img/BancadaCPe%C3%A7a.png-removebg-preview.png";
 
 const SENSOR_IMAGES = {
-  left: "img/focus/left-focus.png",
-  conveyor: "img/focus/conveyor-focus.png",
-  right: "img/focus/right-focus.png"
+  left: "img/BRA%C3%87O%20ESQ.png",
+  conveyor: "img/ESTEIRA.png",
+  right: "img/BRA%C3%87O%201%20DIR.png"
 };
 
-// Cadastro central dos sensores. Para adicionar ou ajustar sensores, edite apenas este objeto.
-const sensors = {
-  DI0: {
-    id: "DI0",
-    name: "Sensor Capacitivo - Entrada",
-    type: "Sensor capacitivo",
-    area: "Mesa esquerda",
-    componentId: "sensor_entry_capacitive",
-    tagNames: ["Sensors.EntrySlotCapacitive", "Sensors.Entry.Capacitive"],
-    detailImage: SENSOR_IMAGES.left,
-    overviewPosition: { x: 22, y: 58 },
-    position: { x: 72, y: 53 },
-    description: "Detecta a presenca de peca no slot de entrada da bancada.",
-    failures: ["Peca fora da area de deteccao", "Sensor desalinhado", "Cabo desconectado", "Entrada digital sem sinal"],
-    recommendations: ["Verifique o LED do sensor", "Confirme o sinal DI0 no CLP", "Limpe e reposicione a peca no slot"],
-    aliases: ["entrada", "slot de entrada", "sensor de entrada", "peca na entrada"]
+const EDITOR_PASSWORD = "1234567";
+const LAYOUT_STORAGE_KEY = "simmaq-nexa-editor-layout-v1";
+
+const IMAGE_CONTEXTS = {
+  overview: { key: "overview", label: "Visao Geral", image: MACHINE_OVERVIEW_IMAGE },
+  left: { key: "left", label: "Braco Esquerdo", image: SENSOR_IMAGES.left },
+  conveyor: { key: "conveyor", label: "Esteira", image: SENSOR_IMAGES.conveyor },
+  right: { key: "right", label: "Braco Direito", image: SENSOR_IMAGES.right }
+};
+
+// Base oficial unica. Marcadores guardam apenas sensorId + posicao; todos os dados vem daqui.
+const sensorCatalog = window.SIMMAQ_SENSOR_REGISTRY || {
+  "DI0": {
+    "id": "DI0",
+    "name": "DI0 - Sensor Capacitivo, peca no slot de entrada",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco esquerdo",
+    "description": "Sensor Capacitivo, peca no slot de entrada",
+    "statusKey": "DI0",
+    "tagNames": [
+      "DI0",
+      "%MW0:X0"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X0",
+    "range": "0/1",
+    "detailImageKey": "left",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Capacitivo, peca no slot de entrada"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI0",
+      "Sensor Capacitivo, peca no slot de entrada"
+    ]
   },
-  DI1: {
-    id: "DI1",
-    name: "Sensor Magnetico - Eixo X Recuado",
-    type: "Sensor magnetico",
-    area: "Mesa esquerda",
-    componentId: "sensor_axis_x_retracted",
-    tagNames: ["Sensors.AxisXRetracted", "Sensors.AxisX.Retracted"],
-    detailImage: SENSOR_IMAGES.left,
-    overviewPosition: { x: 30, y: 42 },
-    position: { x: 72, y: 55 },
-    description: "Confirma que o eixo X voltou para a posicao recuada.",
-    failures: ["Sensor desalinhado", "Ima do cilindro fora de posicao", "Cabo com mau contato", "Entrada digital sem sinal"],
-    recommendations: ["Acione o eixo X manualmente", "Confira se o LED muda no fim de curso", "Meça DI1 no CLP"],
-    aliases: ["eixo x recuado", "sensor da esquerda", "sensor indutivo da esquerda", "mesa esquerda"]
+  "DI1": {
+    "id": "DI1",
+    "name": "DI1 - Sensor Magnetico, eixo X recuado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco esquerdo",
+    "description": "Sensor Magnetico, eixo X recuado",
+    "statusKey": "DI1",
+    "tagNames": [
+      "DI1",
+      "%MW0:X1"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X1",
+    "range": "0/1",
+    "detailImageKey": "left",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo X recuado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI1",
+      "Sensor Magnetico, eixo X recuado"
+    ]
   },
-  DI2: {
-    id: "DI2",
-    name: "Sensor Magnetico - Eixo X Avancado",
-    type: "Sensor magnetico",
-    area: "Mesa esquerda",
-    componentId: "sensor_axis_x_advanced",
-    tagNames: ["Sensors.AxisXAdvanced", "Sensors.AxisX.Advanced"],
-    detailImage: SENSOR_IMAGES.left,
-    overviewPosition: { x: 39, y: 42 },
-    position: { x: 58, y: 44 },
-    description: "Confirma que o eixo X chegou na posicao avancada.",
-    failures: ["Cilindro nao avancou", "Sensor fora da faixa do ima", "Baixa pressao pneumatica", "Sinal digital interrompido"],
-    recommendations: ["Verifique pressao e valvula do eixo X", "Ajuste a posicao do sensor", "Compare DI2 com o movimento real"]
+  "DI2": {
+    "id": "DI2",
+    "name": "DI2 - Sensor Magnetico, eixo X avancado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco esquerdo",
+    "description": "Sensor Magnetico, eixo X avancado",
+    "statusKey": "DI2",
+    "tagNames": [
+      "DI2",
+      "%MW0:X2"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X2",
+    "range": "0/1",
+    "detailImageKey": "left",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo X avancado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI2",
+      "Sensor Magnetico, eixo X avancado"
+    ]
   },
-  DI3: {
-    id: "DI3",
-    name: "Sensor Magnetico - Eixo Y Recuado",
-    type: "Sensor magnetico",
-    area: "Mesa direita",
-    componentId: "sensor_axis_y_retracted",
-    tagNames: ["Sensors.AxisYRetracted", "Sensors.AxisY.Retracted"],
-    detailImage: SENSOR_IMAGES.right,
-    overviewPosition: { x: 61, y: 42 },
-    position: { x: 80, y: 32 },
-    description: "Confirma que o eixo Y esta recolhido na mesa direita.",
-    failures: ["Sensor desalinhado", "Cabo solto", "Cilindro travado", "Entrada DI3 sem sinal"],
-    recommendations: ["Confira o LED do sensor", "Teste o recuo do eixo Y", "Verifique o conector do sensor"],
-    aliases: ["eixo y recuado"]
+  "DI3": {
+    "id": "DI3",
+    "name": "DI3 - Sensor Magnetico, eixo Y recuado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Y recuado",
+    "statusKey": "DI3",
+    "tagNames": [
+      "DI3",
+      "%MW0:X3"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X3",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Y recuado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI3",
+      "Sensor Magnetico, eixo Y recuado"
+    ]
   },
-  DI4: {
-    id: "DI4",
-    name: "Sensor Magnetico - Eixo Y Avancado",
-    type: "Sensor magnetico",
-    area: "Mesa direita",
-    componentId: "sensor_axis_y_advanced",
-    tagNames: ["Sensors.AxisYAdvanced", "Sensors.AxisY.Advanced"],
-    detailImage: SENSOR_IMAGES.right,
-    overviewPosition: { x: 70, y: 42 },
-    position: { x: 58, y: 45 },
-    description: "Confirma o avancamento do eixo Y durante o ciclo da bancada.",
-    failures: ["Eixo Y nao chegou ao fim de curso", "Sensor fora de posicao", "Cabo com mau contato", "Entrada DI4 nao recebendo sinal"],
-    recommendations: ["Acione o eixo Y em manual", "Confirme se DI4 muda de estado", "Verifique valvula, cilindro e alinhamento"],
-    aliases: ["eixo y avancado", "sensor da mesa direita", "mesa direita"]
+  "DI4": {
+    "id": "DI4",
+    "name": "DI4 - Sensor Magnetico, eixo Y avancado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Y avancado",
+    "statusKey": "DI4",
+    "tagNames": [
+      "DI4",
+      "%MW0:X4"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X4",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Y avancado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI4",
+      "Sensor Magnetico, eixo Y avancado"
+    ]
   },
-  DI5: {
-    id: "DI5",
-    name: "Sensor Magnetico - Eixo Z Recuado",
-    type: "Sensor magnetico",
-    area: "Mesa direita",
-    componentId: "sensor_axis_z_retracted",
-    tagNames: ["Sensors.AxisZRetracted", "Sensors.AxisZ.Retracted"],
-    detailImage: SENSOR_IMAGES.right,
-    overviewPosition: { x: 50, y: 35 },
-    position: { x: 25, y: 32 },
-    description: "Confirma que o eixo Z esta na posicao recuada.",
-    failures: ["Sensor deslocado", "Eixo Z preso", "Falha na valvula", "Entrada DI5 sem sinal"],
-    recommendations: ["Verifique movimento do eixo Z", "Ajuste o sensor magnetico", "Confira sinal no CLP"]
+  "DI5": {
+    "id": "DI5",
+    "name": "DI5 - Sensor Magnetico, eixo Z recuado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Z recuado",
+    "statusKey": "DI5",
+    "tagNames": [
+      "DI5",
+      "%MW0:X5"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X5",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Z recuado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI5",
+      "Sensor Magnetico, eixo Z recuado"
+    ]
   },
-  DI6: {
-    id: "DI6",
-    name: "Sensor Magnetico - Eixo Z Avancado",
-    type: "Sensor magnetico",
-    area: "Mesa direita",
-    componentId: "sensor_axis_z_advanced",
-    tagNames: ["Sensors.AxisZAdvanced", "Sensors.AxisZ.Advanced"],
-    detailImage: SENSOR_IMAGES.right,
-    overviewPosition: { x: 50, y: 43 },
-    position: { x: 31, y: 43 },
-    description: "Confirma que o eixo Z chegou na posicao avancada.",
-    failures: ["Eixo Z nao avancou", "Baixa pressao", "Sensor sem alimentacao", "Entrada DI6 travada"],
-    recommendations: ["Teste a descida/subida do eixo Z", "Confira pressao pneumatica", "Valide DI6 no CLP"]
+  "DI6": {
+    "id": "DI6",
+    "name": "DI6 - Sensor Magnetico, eixo Z avancado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Z avancado",
+    "statusKey": "DI6",
+    "tagNames": [
+      "DI6",
+      "%MW0:X6"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X6",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Z avancado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI6",
+      "Sensor Magnetico, eixo Z avancado"
+    ]
   },
-  DI7: {
-    id: "DI7",
-    name: "Sensor Indutivo",
-    type: "Sensor indutivo",
-    area: "Esteira central",
-    componentId: "sensor_inductive",
-    tagNames: ["Sensors.Inductive", "Sensors.Classification.Inductive"],
-    detailImage: SENSOR_IMAGES.conveyor,
-    overviewPosition: { x: 48, y: 56 },
-    position: { x: 89, y: 30 },
-    description: "Detecta caracteristica metalica da peca na regiao de classificacao.",
-    failures: ["Peca metalica fora da area", "Sensor desalinhado", "Distancia de deteccao incorreta", "Entrada DI7 sem sinal"],
-    recommendations: ["Aproxime uma peca metalica para teste", "Confira distancia do sensor", "Verifique LED e cabo"],
-    aliases: ["sensor indutivo", "indutivo"]
+  "DI7": {
+    "id": "DI7",
+    "name": "DI7 - Sensor Indutivo",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Sensor Indutivo",
+    "statusKey": "DI7",
+    "tagNames": [
+      "DI7",
+      "%MW0:X7"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X7",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Indutivo"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI7",
+      "Sensor Indutivo"
+    ]
   },
-  DI8: {
-    id: "DI8",
-    name: "Sensor Optico Reflexivo",
-    type: "Sensor fotoeletrico",
-    area: "Esteira central",
-    componentId: "sensor_optical_reflective",
-    tagNames: ["Sensors.OpticalReflexive", "Sensors.Classification.OpticalReflective"],
-    detailImage: SENSOR_IMAGES.conveyor,
-    overviewPosition: { x: 54, y: 50 },
-    position: { x: 77, y: 29 },
-    description: "Detecta a presenca/passagem da peca na esteira transportadora.",
-    failures: ["Sensor sujo", "Reflexo insuficiente", "Peca mal posicionada", "Cabo com mau contato", "Entrada DI8 sem sinal"],
-    recommendations: ["Limpe a lente", "Teste com peca na frente do sensor", "Confira alinhamento e entrada DI8"],
-    aliases: ["sensor da esteira", "esteira", "transportador", "peca na esteira"]
+  "DI8": {
+    "id": "DI8",
+    "name": "DI8 - Sensor Otico Reflexivo",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Sensor Otico Reflexivo",
+    "statusKey": "DI8",
+    "tagNames": [
+      "DI8",
+      "%MW0:X8"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X8",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Otico Reflexivo"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI8",
+      "Sensor Otico Reflexivo"
+    ]
   },
-  DI9: {
-    id: "DI9",
-    name: "Sensor Optico com Espelho 1",
-    type: "Sensor fotoeletrico com refletor",
-    area: "Esteira central",
-    componentId: "sensor_optical_mirror_1",
-    tagNames: ["Sensors.OpticalMirror1", "Sensors.Classification.OpticalMirror1"],
-    detailImage: SENSOR_IMAGES.conveyor,
-    overviewPosition: { x: 39, y: 51 },
-    position: { x: 63, y: 34 },
-    description: "Monitora a passagem da peca usando barreira/reflexao com espelho.",
-    failures: ["Espelho desalinhado", "Lente suja", "Reflexo fraco", "Entrada DI9 instavel"],
-    recommendations: ["Alinhe sensor e espelho", "Limpe lente/refletor", "Observe se o LED comuta durante a passagem"]
+  "DI9": {
+    "id": "DI9",
+    "name": "DI9 - Sensor Otico com Espelho Refletor",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Sensor Otico com Espelho Refletor",
+    "statusKey": "DI9",
+    "tagNames": [
+      "DI9",
+      "%MW0:X9"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X9",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Otico com Espelho Refletor"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI9",
+      "Sensor Otico com Espelho Refletor"
+    ]
   },
-  DI10: {
-    id: "DI10",
-    name: "Sensor Optico com Espelho 2",
-    type: "Sensor fotoeletrico com refletor",
-    area: "Esteira central",
-    componentId: "sensor_optical_mirror_2",
-    tagNames: ["Sensors.OpticalMirror2", "Sensors.Classification.OpticalMirror2"],
-    detailImage: SENSOR_IMAGES.conveyor,
-    overviewPosition: { x: 63, y: 51 },
-    position: { x: 27, y: 34 },
-    description: "Segundo sensor optico com espelho usado na area de classificacao da esteira.",
-    failures: ["Espelho fora de alinhamento", "Sensor sujo", "Peca nao interrompe o feixe", "Entrada DI10 nao acionou"],
-    recommendations: ["Alinhe o refletor", "Limpe o conjunto optico", "Confira DI10 no CLP durante o ciclo"],
-    aliases: ["sensor di10 nao acionou", "di10 nao acionou"]
+  "DI10": {
+    "id": "DI10",
+    "name": "DI10 - Sensor Otico com Espelho Refletor",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Sensor Otico com Espelho Refletor",
+    "statusKey": "DI10",
+    "tagNames": [
+      "DI10",
+      "%MW0:X10"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X10",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Otico com Espelho Refletor"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI10",
+      "Sensor Otico com Espelho Refletor"
+    ]
   },
-  DI11: {
-    id: "DI11",
-    name: "Sensor Capacitivo - Saida",
-    type: "Sensor capacitivo",
-    area: "Mesa direita",
-    componentId: "sensor_exit_capacitive",
-    tagNames: ["Sensors.ExitSlotCapacitive", "Sensors.Exit.Capacitive"],
-    detailImage: SENSOR_IMAGES.right,
-    overviewPosition: { x: 77, y: 58 },
-    position: { x: 36, y: 67 },
-    description: "Detecta a peca no slot de saida da bancada.",
-    failures: ["Peca nao chegou na saida", "Sensor desalinhado", "Cabo solto", "Entrada DI11 sem sinal"],
-    recommendations: ["Verifique se ha peca no slot de saida", "Confira LED do sensor", "Teste a entrada DI11"],
-    aliases: ["saida", "slot de saida", "sensor de saida"]
+  "DI11": {
+    "id": "DI11",
+    "name": "DI11 - Sensor Capacitivo, peca no slot de saida",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Capacitivo, peca no slot de saida",
+    "statusKey": "DI11",
+    "tagNames": [
+      "DI11",
+      "%MW0:X11"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X11",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Capacitivo, peca no slot de saida"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI11",
+      "Sensor Capacitivo, peca no slot de saida"
+    ]
+  },
+  "DI12": {
+    "id": "DI12",
+    "name": "DI12 - Sensor Magnetico, eixo X recuado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco esquerdo",
+    "description": "Sensor Magnetico, eixo X recuado",
+    "statusKey": "DI12",
+    "tagNames": [
+      "DI12",
+      "%MW0:X12"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X12",
+    "range": "0/1",
+    "detailImageKey": "left",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo X recuado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI12",
+      "Sensor Magnetico, eixo X recuado"
+    ]
+  },
+  "DI13": {
+    "id": "DI13",
+    "name": "DI13 - Sensor Magnetico, eixo X avancado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco esquerdo",
+    "description": "Sensor Magnetico, eixo X avancado",
+    "statusKey": "DI13",
+    "tagNames": [
+      "DI13",
+      "%MW0:X13"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X13",
+    "range": "0/1",
+    "detailImageKey": "left",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo X avancado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI13",
+      "Sensor Magnetico, eixo X avancado"
+    ]
+  },
+  "DI14": {
+    "id": "DI14",
+    "name": "DI14 - Sensor Magnetico, eixo Y recuado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Y recuado",
+    "statusKey": "DI14",
+    "tagNames": [
+      "DI14",
+      "%MW0:X14"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X14",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Y recuado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI14",
+      "Sensor Magnetico, eixo Y recuado"
+    ]
+  },
+  "DI15": {
+    "id": "DI15",
+    "name": "DI15 - Sensor Magnetico, eixo Y avancado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Y avancado",
+    "statusKey": "DI15",
+    "tagNames": [
+      "DI15",
+      "%MW0:X15"
+    ],
+    "modbusAddress": "40001.0",
+    "virtualAddress": "%MW0:X15",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Y avancado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI15",
+      "Sensor Magnetico, eixo Y avancado"
+    ]
+  },
+  "DI16": {
+    "id": "DI16",
+    "name": "DI16 - Sensor Magnetico, eixo Z recuado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Z recuado",
+    "statusKey": "DI16",
+    "tagNames": [
+      "DI16",
+      "%MW1:X0"
+    ],
+    "modbusAddress": "40002.0",
+    "virtualAddress": "%MW1:X0",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Z recuado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI16",
+      "Sensor Magnetico, eixo Z recuado"
+    ]
+  },
+  "DI17": {
+    "id": "DI17",
+    "name": "DI17 - Sensor Magnetico, eixo Z avancado",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Sensor Magnetico, eixo Z avancado",
+    "statusKey": "DI17",
+    "tagNames": [
+      "DI17",
+      "%MW1:X1"
+    ],
+    "modbusAddress": "40002.0",
+    "virtualAddress": "%MW1:X1",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Sensor Magnetico, eixo Z avancado"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI17",
+      "Sensor Magnetico, eixo Z avancado"
+    ]
+  },
+  "DI20": {
+    "id": "DI20",
+    "name": "DI20 - Botao Emergencia",
+    "type": "Entrada digital",
+    "category": "sensor",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Botao Emergencia",
+    "statusKey": "DI20",
+    "tagNames": [
+      "DI20",
+      "%MW1:X4"
+    ],
+    "modbusAddress": "40002.0",
+    "virtualAddress": "%MW1:X4",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Botao Emergencia"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DI20",
+      "Botao Emergencia"
+    ]
+  },
+  "DO0": {
+    "id": "DO0",
+    "name": "DO0 - Desloca eixo X",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Braco esquerdo",
+    "description": "Desloca eixo X",
+    "statusKey": "DO0",
+    "tagNames": [
+      "DO0",
+      "%MW2:X0"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X0",
+    "range": "0/1",
+    "detailImageKey": "left",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Desloca eixo X"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO0",
+      "Desloca eixo X"
+    ]
+  },
+  "DO1": {
+    "id": "DO1",
+    "name": "DO1 - Desloca eixo Y",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Desloca eixo Y",
+    "statusKey": "DO1",
+    "tagNames": [
+      "DO1",
+      "%MW2:X1"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X1",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Desloca eixo Y"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO1",
+      "Desloca eixo Y"
+    ]
+  },
+  "DO2": {
+    "id": "DO2",
+    "name": "DO2 - Desloca eixo Z",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Desloca eixo Z",
+    "statusKey": "DO2",
+    "tagNames": [
+      "DO2",
+      "%MW2:X2"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X2",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Desloca eixo Z"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO2",
+      "Desloca eixo Z"
+    ]
+  },
+  "DO3": {
+    "id": "DO3",
+    "name": "DO3 - Aciona ventosa",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Aciona ventosa",
+    "statusKey": "DO3",
+    "tagNames": [
+      "DO3",
+      "%MW2:X3"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X3",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Aciona ventosa"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO3",
+      "Aciona ventosa"
+    ]
+  },
+  "DO4": {
+    "id": "DO4",
+    "name": "DO4 - Esteira avanca",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Esteira avanca",
+    "statusKey": "DO4",
+    "tagNames": [
+      "DO4",
+      "%MW2:X4"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X4",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Esteira avanca"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO4",
+      "Esteira avanca"
+    ]
+  },
+  "DO5": {
+    "id": "DO5",
+    "name": "DO5 - Esteira recua",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Esteira recua",
+    "statusKey": "DO5",
+    "tagNames": [
+      "DO5",
+      "%MW2:X5"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X5",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Esteira recua"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO5",
+      "Esteira recua"
+    ]
+  },
+  "DO6": {
+    "id": "DO6",
+    "name": "DO6 - Avanca cilindro de descarte 1",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Avanca cilindro de descarte 1",
+    "statusKey": "DO6",
+    "tagNames": [
+      "DO6",
+      "%MW2:X6"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X6",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Avanca cilindro de descarte 1"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO6",
+      "Avanca cilindro de descarte 1"
+    ]
+  },
+  "DO7": {
+    "id": "DO7",
+    "name": "DO7 - Avanca cilindro de descarte 2",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Avanca cilindro de descarte 2",
+    "statusKey": "DO7",
+    "tagNames": [
+      "DO7",
+      "%MW2:X7"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X7",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Avanca cilindro de descarte 2"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO7",
+      "Avanca cilindro de descarte 2"
+    ]
+  },
+  "DO8": {
+    "id": "DO8",
+    "name": "DO8 - Desloca eixo X",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Braco esquerdo",
+    "description": "Desloca eixo X",
+    "statusKey": "DO8",
+    "tagNames": [
+      "DO8",
+      "%MW2:X8"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X8",
+    "range": "0/1",
+    "detailImageKey": "left",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Desloca eixo X"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO8",
+      "Desloca eixo X"
+    ]
+  },
+  "DO9": {
+    "id": "DO9",
+    "name": "DO9 - Desloca eixo Y",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Desloca eixo Y",
+    "statusKey": "DO9",
+    "tagNames": [
+      "DO9",
+      "%MW2:X9"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X9",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Desloca eixo Y"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO9",
+      "Desloca eixo Y"
+    ]
+  },
+  "DO10": {
+    "id": "DO10",
+    "name": "DO10 - Desloca eixo Z",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Braco direito",
+    "description": "Desloca eixo Z",
+    "statusKey": "DO10",
+    "tagNames": [
+      "DO10",
+      "%MW2:X10"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X10",
+    "range": "0/1",
+    "detailImageKey": "right",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Desloca eixo Z"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO10",
+      "Desloca eixo Z"
+    ]
+  },
+  "DO11": {
+    "id": "DO11",
+    "name": "DO11 - Aciona ventosa",
+    "type": "Saida digital",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Aciona ventosa",
+    "statusKey": "DO11",
+    "tagNames": [
+      "DO11",
+      "%MW2:X11"
+    ],
+    "modbusAddress": "40003.0",
+    "virtualAddress": "%MW2:X11",
+    "range": "0/1",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Aciona ventosa"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "DO11",
+      "Aciona ventosa"
+    ]
+  },
+  "AO0": {
+    "id": "AO0",
+    "name": "AO0 - Set de velocidade da esteira",
+    "type": "Saida analogica",
+    "category": "atuador",
+    "machine": "Classificador De Peca",
+    "area": "Esteira",
+    "description": "Set de velocidade da esteira",
+    "statusKey": "AO0",
+    "tagNames": [
+      "AO0",
+      "%MW5"
+    ],
+    "modbusAddress": "40006.0",
+    "virtualAddress": "%MW5",
+    "range": "0...255",
+    "detailImageKey": "conveyor",
+    "applications": [
+      {
+        "machine": "Classificador De Peca",
+        "function": "Set de velocidade da esteira"
+      }
+    ],
+    "failures": [],
+    "recommendations": [],
+    "aliases": [
+      "AO0",
+      "Set de velocidade da esteira"
+    ]
   }
 };
+
+const sensors = sensorCatalog;
 
 const els = {
   apiSignal: document.querySelector("#apiSignal"),
@@ -227,6 +1023,34 @@ const els = {
   machineView: document.querySelector("#machineView"),
   machineImage: document.querySelector("#machineImage"),
   sensorOverlay: document.querySelector("#sensorOverlay"),
+  editorEntry: document.querySelector("#editorEntry"),
+  editorToolbar: document.querySelector("#editorToolbar"),
+  editorImageTabs: document.querySelector("#editorImageTabs"),
+  editorMachineFilter: document.querySelector("#editorMachineFilter"),
+  editorNewMarker: document.querySelector("#editorNewMarker"),
+  editorSaveLayout: document.querySelector("#editorSaveLayout"),
+  editorCopyJson: document.querySelector("#editorCopyJson"),
+  editorExportLayout: document.querySelector("#editorExportLayout"),
+  editorImportJson: document.querySelector("#editorImportJson"),
+  editorExit: document.querySelector("#editorExit"),
+  editorStatus: document.querySelector("#editorStatus"),
+  editorCanvasHint: document.querySelector("#editorCanvasHint"),
+  editorInspector: document.querySelector("#editorInspector"),
+  editorSelectedTitle: document.querySelector("#editorSelectedTitle"),
+  editorSensorSelect: document.querySelector("#editorSensorSelect"),
+  editorPosX: document.querySelector("#editorPosX"),
+  editorPosY: document.querySelector("#editorPosY"),
+  editorDuplicateMarker: document.querySelector("#editorDuplicateMarker"),
+  editorRemoveMarker: document.querySelector("#editorRemoveMarker"),
+  editorMarkerDialog: document.querySelector("#editorMarkerDialog"),
+  editorMarkerForm: document.querySelector("#editorMarkerForm"),
+  editorNewSensor: document.querySelector("#editorNewSensor"),
+  editorNewImage: document.querySelector("#editorNewImage"),
+  editorCreateMarker: document.querySelector("#editorCreateMarker"),
+  editorJsonDialog: document.querySelector("#editorJsonDialog"),
+  editorJsonForm: document.querySelector("#editorJsonForm"),
+  editorJsonInput: document.querySelector("#editorJsonInput"),
+  editorApplyJson: document.querySelector("#editorApplyJson"),
   sensorBack: document.querySelector("#sensorBack"),
   sensorDetailCard: document.querySelector("#sensorDetailCard"),
   sensorDetailArea: document.querySelector("#sensorDetailArea"),
@@ -259,10 +1083,144 @@ let selectedSensor = null;
 let sensorStatusByTag = {};
 let activeFaultSourceTags = new Set();
 let selectedSensorFaultIntent = false;
+let currentImageKey = "overview";
+let editorActive = false;
+let selectedMarkerId = null;
+let editorLayout = loadEditorLayout();
+let draggingMarker = null;
+let editorMachineFilter = "all";
 
 if (!conversationId) {
   conversationId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
   localStorage.setItem("nexa-ai-conversation-id", conversationId);
+}
+
+function imageKeyForItem(item) {
+  if (item.detailImageKey && IMAGE_CONTEXTS[item.detailImageKey]) return item.detailImageKey;
+  if (item.detailImage === SENSOR_IMAGES.left) return "left";
+  if (item.detailImage === SENSOR_IMAGES.conveyor) return "conveyor";
+  if (item.detailImage === SENSOR_IMAGES.right) return "right";
+  return "overview";
+}
+
+function markerId(sensorId, imageKey, suffix = "") {
+  return `${sensorId}-${imageKey}${suffix}`;
+}
+
+function clampPercent(value) {
+  return Math.max(0, Math.min(100, Number(value) || 0));
+}
+
+function roundPercent(value) {
+  return Math.round(clampPercent(value) * 100) / 100;
+}
+
+function defaultPositionFor(item, imageKey) {
+  if (imageKey === "overview") {
+    return item.overviewPosition || { x: 50, y: 50 };
+  }
+
+  if (imageKey === imageKeyForItem(item)) {
+    return item.position || item.overviewPosition || { x: 50, y: 50 };
+  }
+
+  return item.overviewPosition || { x: 50, y: 50 };
+}
+
+function createLayoutMarker(sensorId, imageKey, position = null) {
+  const item = sensorCatalog[sensorId];
+  const coordinates = position || defaultPositionFor(item, imageKey);
+  return {
+    id: markerId(sensorId, imageKey),
+    sensorId,
+    image: imageKey,
+    x: roundPercent(coordinates.x),
+    y: roundPercent(coordinates.y)
+  };
+}
+
+function createDefaultLayout() {
+  return Object.values(sensorCatalog).flatMap((item) =>
+    Object.keys(IMAGE_CONTEXTS).map((imageKey) => createLayoutMarker(item.id, imageKey))
+  );
+}
+
+function normalizeImportedMarker(marker, index) {
+  const sensorId = marker.sensorId || marker.id;
+  if (!sensorCatalog[sensorId]) {
+    return null;
+  }
+
+  const imageKey = marker.image || marker.imagem || "overview";
+  const image = IMAGE_CONTEXTS[imageKey] ? imageKey : "overview";
+  return {
+    id: marker.markerId || markerId(sensorId, image, `-${index}`),
+    sensorId,
+    image,
+    x: roundPercent(marker.x),
+    y: roundPercent(marker.y)
+  };
+}
+
+function loadEditorLayout() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || "null");
+    if (Array.isArray(saved) && saved.length > 0) {
+      const markers = saved.map(normalizeImportedMarker).filter(Boolean);
+      if (markers.length > 0) return markers;
+    }
+  } catch {
+    localStorage.removeItem(LAYOUT_STORAGE_KEY);
+  }
+
+  return createDefaultLayout();
+}
+
+function saveEditorLayout() {
+  localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(editorLayout));
+  setEditorStatus("Layout salvo");
+}
+
+function exportEditorLayout() {
+  return editorLayout
+    .map((marker) => {
+      const item = sensorCatalog[marker.sensorId];
+      return {
+        sensorId: marker.sensorId,
+        tipo: item?.type || "",
+        area: item?.area || "",
+        x: roundPercent(marker.x),
+        y: roundPercent(marker.y),
+        imagem: marker.image
+      };
+    })
+    .sort((a, b) => `${a.imagem}-${a.sensorId}`.localeCompare(`${b.imagem}-${b.sensorId}`));
+}
+
+function markersForCurrentImage() {
+  return editorLayout.filter((marker) => marker.image === currentImageKey && sensorCatalog[marker.sensorId]);
+}
+
+function selectedMarker() {
+  return editorLayout.find((marker) => marker.id === selectedMarkerId) || null;
+}
+
+function setEditorStatus(message) {
+  els.editorStatus.textContent = message;
+  window.clearTimeout(setEditorStatus.timeoutId);
+  setEditorStatus.timeoutId = window.setTimeout(() => {
+    els.editorStatus.textContent = editorActive ? "Editando layout" : "Layout local";
+  }, 2200);
+}
+
+function setImageContext(imageKey) {
+  currentImageKey = IMAGE_CONTEXTS[imageKey] ? imageKey : "overview";
+  const imageContext = IMAGE_CONTEXTS[currentImageKey];
+  els.machineImage.src = imageContext.image;
+  els.machineImage.alt = imageContext.label;
+  els.machineView.classList.toggle("sensor-focus", currentImageKey !== "overview" && !editorActive);
+  renderEditorImageTabs();
+  renderSensorOverlay();
 }
 
 function tickClock() {
@@ -353,44 +1311,328 @@ function getSensorState(sensor) {
   return { key: "idle", label: "Inativo", active: false };
 }
 
-function createSensorMarker(sensor, mode) {
+function createSensorMarker(layoutMarker, mode) {
+  const sensor = sensorCatalog[layoutMarker.sensorId];
   const state = getSensorState(sensor);
-  const position = mode === "detail" ? sensor.position : sensor.overviewPosition;
-  const marker = document.createElement("button");
-  marker.type = "button";
-  marker.className = `sensor-marker ${state.key} ${mode === "detail" ? "selected" : ""}`;
-  marker.style.left = `${position.x}%`;
-  marker.style.top = `${position.y}%`;
-  marker.setAttribute("aria-label", `${sensor.id} - ${sensor.name}`);
-  marker.innerHTML = `<span></span><strong>${sensor.id}</strong>`;
-  marker.addEventListener("click", () => {
-    selectSensor(sensor, { fault: state.key === "fault", openAssistant: false });
+  const element = document.createElement("button");
+  element.type = "button";
+  element.dataset.markerId = layoutMarker.id;
+  element.className = `sensor-marker ${state.key} ${sensor.category?.toLowerCase() || ""} ${mode === "detail" ? "selected" : ""} ${selectedMarkerId === layoutMarker.id ? "editor-selected" : ""}`;
+  element.style.left = `${layoutMarker.x}%`;
+  element.style.top = `${layoutMarker.y}%`;
+  element.setAttribute("aria-label", `${sensor.id} - ${sensor.name}`);
+  element.innerHTML = `<span></span><strong>${sensor.id}</strong>`;
+  element.addEventListener("pointerdown", (event) => startMarkerDrag(event, layoutMarker.id));
+  element.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (editorActive) {
+      selectEditorMarker(layoutMarker.id);
+      return;
+    }
+    selectSensor(sensor, { fault: state.key === "fault", imageKey: layoutMarker.image });
   });
-  return marker;
+  return element;
 }
 
 function renderSensorOverlay() {
   els.sensorOverlay.innerHTML = "";
 
-  if (selectedSensor) {
-    els.sensorOverlay.appendChild(createSensorMarker(selectedSensor, "detail"));
+  const markers = markersForCurrentImage();
+
+  if (!editorActive && selectedSensor) {
+    markers
+      .filter((marker) => marker.sensorId === selectedSensor.id)
+      .forEach((marker) => els.sensorOverlay.appendChild(createSensorMarker(marker, "detail")));
     return;
   }
 
-  Object.values(sensors).forEach((sensor) => {
-    els.sensorOverlay.appendChild(createSensorMarker(sensor, "overview"));
+  markers.forEach((marker) => {
+    els.sensorOverlay.appendChild(createSensorMarker(marker, "overview"));
   });
+}
+
+function machineNames() {
+  return Array.from(new Set(Object.values(sensorCatalog).flatMap((item) =>
+    (item.applications || []).map((application) => application.machine).concat(item.machine || [])
+  )))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+function itemMatchesMachineFilter(item) {
+  if (editorMachineFilter === "all") return true;
+  return item.machine === editorMachineFilter ||
+    (item.applications || []).some((application) => application.machine === editorMachineFilter);
+}
+
+function catalogOptionsHtml() {
+  return Object.values(sensorCatalog)
+    .filter(itemMatchesMachineFilter)
+    .sort((a, b) => a.id.localeCompare(b.id, "pt-BR", { numeric: true }))
+    .map((item) => `<option value="${item.id}">${item.id} - ${item.name}</option>`)
+    .join("");
+}
+
+function imageOptionsHtml() {
+  return Object.values(IMAGE_CONTEXTS)
+    .map((image) => `<option value="${image.key}">${image.label}</option>`)
+    .join("");
+}
+
+function populateEditorSelects() {
+  const selectedSensorValue = els.editorSensorSelect.value;
+  const selectedNewValue = els.editorNewSensor.value;
+  const catalogHtml = catalogOptionsHtml();
+  els.editorSensorSelect.innerHTML = catalogHtml;
+  els.editorNewSensor.innerHTML = catalogHtml;
+  els.editorNewImage.innerHTML = imageOptionsHtml();
+  if (sensorCatalog[selectedSensorValue]) {
+    els.editorSensorSelect.value = selectedSensorValue;
+  }
+  if (sensorCatalog[selectedNewValue]) {
+    els.editorNewSensor.value = selectedNewValue;
+  }
+}
+
+function populateMachineFilter() {
+  els.editorMachineFilter.innerHTML = [
+    '<option value="all">Todos</option>',
+    ...machineNames().map((machine) => `<option value="${machine}">${machine}</option>`)
+  ].join("");
+  els.editorMachineFilter.value = editorMachineFilter;
+}
+
+function renderEditorImageTabs() {
+  if (!els.editorImageTabs) return;
+  els.editorImageTabs.innerHTML = "";
+
+  Object.values(IMAGE_CONTEXTS).forEach((image) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = image.label;
+    button.className = image.key === currentImageKey ? "active" : "";
+    button.addEventListener("click", () => {
+      selectedSensor = null;
+      selectedSensorFaultIntent = false;
+      els.sensorDetailCard.setAttribute("aria-hidden", "true");
+      els.sensorDetailCard.classList.remove("fault", "ok");
+      setImageContext(image.key);
+    });
+    els.editorImageTabs.appendChild(button);
+  });
+}
+
+function updateEditorInspector() {
+  const marker = selectedMarker();
+  const item = marker ? sensorCatalog[marker.sensorId] : null;
+  els.editorInspector.classList.toggle("open", editorActive);
+  els.editorInspector.setAttribute("aria-hidden", String(!editorActive));
+  els.editorSensorSelect.disabled = !marker;
+  els.editorDuplicateMarker.disabled = !marker;
+  els.editorRemoveMarker.disabled = !marker;
+  els.editorSelectedTitle.textContent = item ? `${item.id} - ${item.name}` : "Nenhum";
+  els.editorPosX.textContent = marker ? roundPercent(marker.x).toFixed(2) : "--";
+  els.editorPosY.textContent = marker ? roundPercent(marker.y).toFixed(2) : "--";
+
+  if (marker) {
+    els.editorSensorSelect.value = marker.sensorId;
+  }
+}
+
+function selectEditorMarker(markerId) {
+  selectedMarkerId = markerId;
+  const marker = selectedMarker();
+  if (marker) {
+    const item = sensorCatalog[marker.sensorId];
+    selectedSensor = item;
+    currentComponentId = item.componentId;
+    renderSensorDetail(item);
+  }
+  updateEditorInspector();
+  renderSensorOverlay();
+}
+
+function startMarkerDrag(event, markerId) {
+  if (!editorActive) return;
+  event.preventDefault();
+  event.stopPropagation();
+  selectEditorMarker(markerId);
+  draggingMarker = {
+    markerId,
+    pointerId: event.pointerId
+  };
+  event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function moveDraggingMarker(event) {
+  if (!draggingMarker || draggingMarker.pointerId !== event.pointerId) return;
+  const marker = editorLayout.find((item) => item.id === draggingMarker.markerId);
+  if (!marker) return;
+
+  const rect = els.sensorOverlay.getBoundingClientRect();
+  marker.x = roundPercent(((event.clientX - rect.left) / rect.width) * 100);
+  marker.y = roundPercent(((event.clientY - rect.top) / rect.height) * 100);
+  updateEditorInspector();
+  renderSensorOverlay();
+}
+
+function stopDraggingMarker(event) {
+  if (!draggingMarker || draggingMarker.pointerId !== event.pointerId) return;
+  draggingMarker = null;
+  saveEditorLayout();
+}
+
+function enterEditorMode() {
+  const password = window.prompt("Senha do modo editor");
+  if (password !== EDITOR_PASSWORD) {
+    window.alert("Senha incorreta.");
+    return;
+  }
+
+  editorActive = true;
+  selectedMarkerId = null;
+  selectedSensor = null;
+  selectedSensorFaultIntent = false;
+  els.machineView.classList.add("editor-active");
+  els.editorToolbar.classList.add("open");
+  els.editorToolbar.setAttribute("aria-hidden", "false");
+  els.editorCanvasHint.setAttribute("aria-hidden", "false");
+  resetSensorView();
+  updateEditorInspector();
+  setEditorStatus("Editando layout");
+}
+
+function exitEditorMode() {
+  editorActive = false;
+  draggingMarker = null;
+  selectedMarkerId = null;
+  els.machineView.classList.remove("editor-active");
+  els.editorToolbar.classList.remove("open");
+  els.editorToolbar.setAttribute("aria-hidden", "true");
+  els.editorCanvasHint.setAttribute("aria-hidden", "true");
+  updateEditorInspector();
+  resetSensorView();
+}
+
+function changeSelectedMarkerSensor(sensorId) {
+  const marker = selectedMarker();
+  if (!marker || !sensorCatalog[sensorId]) return;
+  marker.sensorId = sensorId;
+  marker.id = markerId(sensorId, marker.image, `-${Date.now()}`);
+  selectedMarkerId = marker.id;
+  saveEditorLayout();
+  selectEditorMarker(marker.id);
+}
+
+function duplicateSelectedMarker() {
+  const marker = selectedMarker();
+  if (!marker) return;
+  const copy = {
+    ...marker,
+    id: markerId(marker.sensorId, marker.image, `-copy-${Date.now()}`),
+    x: roundPercent(marker.x + 2),
+    y: roundPercent(marker.y + 2)
+  };
+  editorLayout.push(copy);
+  selectedMarkerId = copy.id;
+  saveEditorLayout();
+  updateEditorInspector();
+  renderSensorOverlay();
+}
+
+function removeSelectedMarker() {
+  const marker = selectedMarker();
+  if (!marker) return;
+  editorLayout = editorLayout.filter((item) => item.id !== marker.id);
+  selectedMarkerId = null;
+  saveEditorLayout();
+  updateEditorInspector();
+  renderSensorOverlay();
+}
+
+function openNewMarkerDialog() {
+  els.editorNewSensor.value = Object.keys(sensorCatalog)[0];
+  els.editorNewImage.value = currentImageKey;
+  els.editorMarkerDialog.showModal();
+}
+
+function createNewMarker(sensorId, imageKey) {
+  if (!sensorCatalog[sensorId] || !IMAGE_CONTEXTS[imageKey]) return;
+  const marker = {
+    id: markerId(sensorId, imageKey, `-new-${Date.now()}`),
+    sensorId,
+    image: imageKey,
+    x: 50,
+    y: 50
+  };
+  editorLayout.push(marker);
+  setImageContext(imageKey);
+  selectedMarkerId = marker.id;
+  saveEditorLayout();
+  updateEditorInspector();
+  renderSensorOverlay();
+}
+
+async function copyLayoutJson() {
+  const json = JSON.stringify(exportEditorLayout(), null, 2);
+  await navigator.clipboard.writeText(json);
+  setEditorStatus("JSON copiado");
+}
+
+function exportLayoutFile() {
+  const json = JSON.stringify(exportEditorLayout(), null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "simmaq-nexa-layout.json";
+  link.click();
+  URL.revokeObjectURL(url);
+  setEditorStatus("Layout exportado");
+}
+
+function openImportDialog() {
+  els.editorJsonInput.value = "";
+  els.editorJsonDialog.showModal();
+}
+
+function importLayoutFromJson(value) {
+  const parsed = JSON.parse(value);
+  if (!Array.isArray(parsed)) {
+    throw new Error("JSON deve ser uma lista de marcadores.");
+  }
+
+  const imported = parsed.map(normalizeImportedMarker).filter(Boolean);
+  if (imported.length === 0) {
+    throw new Error("Nenhum marcador valido encontrado.");
+  }
+
+  editorLayout = imported;
+  selectedMarkerId = null;
+  saveEditorLayout();
+  updateEditorInspector();
+  renderSensorOverlay();
 }
 
 function renderSensorDetail(sensor) {
   const state = getSensorState(sensor);
+  const hasDescription = sensor.description && sensor.description !== "Informacoes tecnicas ainda nao cadastradas.";
+  const applicationSummary = (sensor.applications || [])
+    .map((item) => `${item.machine}: ${item.function}`)
+    .join(" | ");
   els.sensorDetailArea.textContent = sensor.area;
   els.sensorDetailTitle.textContent = sensor.id;
   els.sensorDetailType.textContent = sensor.type;
   els.sensorDetailStatus.textContent = state.label;
-  els.sensorDetailDescription.textContent = sensor.description;
-  els.sensorDetailFailures.innerHTML = sensor.failures.map((item) => `<li>${item}</li>`).join("");
-  els.sensorDetailRecommendations.innerHTML = sensor.recommendations.map((item) => `<li>${item}</li>`).join("");
+  els.sensorDetailDescription.textContent = hasDescription
+    ? `${sensor.description}${applicationSummary ? ` (${applicationSummary})` : ""}`
+    : "Informações técnicas ainda não cadastradas.";
+  els.sensorDetailFailures.innerHTML = sensor.failures?.length
+    ? sensor.failures.map((item) => `<li>${item}</li>`).join("")
+    : "<li>Informações técnicas ainda não cadastradas.</li>";
+  els.sensorDetailRecommendations.innerHTML = sensor.recommendations?.length
+    ? sensor.recommendations.map((item) => `<li>${item}</li>`).join("")
+    : "<li>Informações técnicas ainda não cadastradas.</li>";
   els.sensorDetailCard.classList.toggle("fault", state.key === "fault");
   els.sensorDetailCard.classList.toggle("ok", state.key === "ok");
   els.sensorDetailCard.setAttribute("aria-hidden", "false");
@@ -401,31 +1643,44 @@ function selectSensor(sensor, options = {}) {
   selectedSensorFaultIntent = Boolean(options.fault);
   currentComponentId = sensor.componentId;
 
-  els.machineImage.src = sensor.detailImage;
+  currentImageKey = IMAGE_CONTEXTS[options.imageKey] ? options.imageKey : imageKeyForItem(sensor);
+  els.machineImage.src = IMAGE_CONTEXTS[currentImageKey].image;
   els.machineImage.alt = `${sensor.area} - ${sensor.name}`;
   els.machineView.classList.add("sensor-focus");
   els.machineView.classList.toggle("fault", getSensorState(sensor).key === "fault");
   renderSensorDetail(sensor);
+  renderEditorImageTabs();
   renderSensorOverlay();
 }
 
 function resetSensorView() {
   selectedSensor = null;
   selectedSensorFaultIntent = false;
-  els.machineImage.src = MACHINE_OVERVIEW_IMAGE;
+  currentImageKey = "overview";
+  els.machineImage.src = IMAGE_CONTEXTS.overview.image;
   els.machineImage.alt = "Bancada SIMMAQ NXA";
   els.machineView.classList.remove("sensor-focus", "fault");
   els.sensorDetailCard.classList.remove("fault", "ok");
   els.sensorDetailCard.setAttribute("aria-hidden", "true");
+  renderEditorImageTabs();
   renderSensorOverlay();
 }
 
 function buildSensorQuestion(question, sensor) {
   const state = getSensorState(sensor);
+  const applications = (sensor.applications || [])
+    .map((item) => `${item.machine}: ${item.function}`)
+    .join("; ");
   return `O usuario perguntou sobre o sensor ${sensor.id}. Pergunta original: "${question}". ` +
-    `Contexto visual: nome=${sensor.name}; tipo=${sensor.type}; area=${sensor.area}; status=${state.label}; funcao=${sensor.description}; ` +
-    `possiveis falhas=${sensor.failures.join(", ")}; recomendacoes=${sensor.recommendations.join(", ")}. ` +
+    `Contexto oficial do cadastro central: id=${sensor.id}; categoria=${sensor.category}; nome=${sensor.name}; tipo=${sensor.type}; maquina=${sensor.machine}; area=${sensor.area}; statusKey=${sensor.statusKey}; tags=${sensor.tagNames.join(", ")}; endereco modbus=${sensor.modbusAddress || "nao informado"}; endereco virtual=${sensor.virtualAddress || "nao informado"}; status atual=${state.label}; funcao=${sensor.description}; aplicacoes=${applications || "nao cadastradas"}; ` +
+    `possiveis falhas=${sensor.failures?.join(", ") || "nao cadastradas"}; recomendacoes=${sensor.recommendations?.join(", ") || "nao cadastradas"}. ` +
     "Responda em portugues, direto e tecnico, explicando funcao, localizacao, status atual e o que verificar.";
+}
+
+function isMachineQuestion(message) {
+  const normalized = normalizeText(message);
+  return /MAQUINA|BANCADA|CLASSIFICADOR|CICLO|PROCESSO/.test(normalized) &&
+    !Object.keys(sensorCatalog).some((sensorId) => new RegExp(`(^|\\W)${sensorId}(\\W|$)`).test(normalized));
 }
 
 async function loadComponentMap() {
@@ -695,8 +1950,11 @@ async function askAssistant(question) {
   if (assistantBusy) return;
 
   const detectedSensor = detectSensorFromMessage(question);
-  if (detectedSensor) {
-    selectSensor(detectedSensor, { fault: isFaultQuestion(question) });
+  const linkedSensor = isMachineQuestion(question)
+    ? null
+    : detectedSensor || selectedSensor || sensorFromComponent(currentComponentId);
+  if (linkedSensor) {
+    selectSensor(linkedSensor, { fault: isFaultQuestion(question) });
   }
 
   addMessage("user", question);
@@ -708,9 +1966,9 @@ async function askAssistant(question) {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
-        question: detectedSensor ? buildSensorQuestion(question, detectedSensor) : question,
+        question: linkedSensor ? buildSensorQuestion(question, linkedSensor) : question,
         conversationId,
-        componentId: detectedSensor?.componentId || currentComponentId,
+        componentId: linkedSensor?.componentId || (isMachineQuestion(question) ? null : currentComponentId),
         mode: "diagnostic"
       })
     });
@@ -821,10 +2079,11 @@ async function loadDashboard() {
     setConnection(els.mqttDot, els.mqttState, data.communication.mqttConnected);
 
     const sensors = data.sensors || [];
-    sensorStatusByTag = Object.fromEntries(sensors.map((tag) => [tag.name, tag]));
+    const actuators = data.actuators || [];
+    sensorStatusByTag = Object.fromEntries([...sensors, ...actuators].map((tag) => [tag.name, tag]));
     activeFaultSourceTags = new Set((data.pendingDiagnostics || []).map((diagnostic) => diagnostic.sourceTag).filter(Boolean));
     renderTagList(els.sensorsList, sensors);
-    renderTagList(els.actuatorsList, data.actuators || []);
+    renderTagList(els.actuatorsList, actuators);
     renderAlarms(data.activeAlarms || []);
     renderDiagnostics(data.pendingDiagnostics || []);
     if (selectedSensor) {
@@ -845,9 +2104,55 @@ els.themeToggle.addEventListener("click", () => {
   setTheme(current === "dark" ? "light" : "dark");
 });
 
+els.editorEntry.addEventListener("click", enterEditorMode);
+els.editorNewMarker.addEventListener("click", openNewMarkerDialog);
+els.editorSaveLayout.addEventListener("click", saveEditorLayout);
+els.editorMachineFilter.addEventListener("change", () => {
+  editorMachineFilter = els.editorMachineFilter.value;
+  populateEditorSelects();
+});
+els.editorCopyJson.addEventListener("click", () => {
+  copyLayoutJson().catch(() => setEditorStatus("Nao foi possivel copiar"));
+});
+els.editorExportLayout.addEventListener("click", exportLayoutFile);
+els.editorImportJson.addEventListener("click", openImportDialog);
+els.editorExit.addEventListener("click", exitEditorMode);
+els.editorSensorSelect.addEventListener("change", () => changeSelectedMarkerSensor(els.editorSensorSelect.value));
+els.editorDuplicateMarker.addEventListener("click", duplicateSelectedMarker);
+els.editorRemoveMarker.addEventListener("click", removeSelectedMarker);
+window.addEventListener("pointermove", moveDraggingMarker);
+window.addEventListener("pointerup", stopDraggingMarker);
+window.addEventListener("pointercancel", stopDraggingMarker);
+els.sensorOverlay.addEventListener("click", () => {
+  if (!editorActive) return;
+  selectedMarkerId = null;
+  updateEditorInspector();
+  renderSensorOverlay();
+});
+
+els.editorMarkerForm.addEventListener("submit", (event) => {
+  if (event.submitter?.value === "cancel") return;
+  event.preventDefault();
+  createNewMarker(els.editorNewSensor.value, els.editorNewImage.value);
+  els.editorMarkerDialog.close();
+});
+
+els.editorJsonForm.addEventListener("submit", (event) => {
+  if (event.submitter?.value === "cancel") return;
+  event.preventDefault();
+  try {
+    importLayoutFromJson(els.editorJsonInput.value);
+    els.editorJsonDialog.close();
+    setEditorStatus("Layout importado");
+  } catch (error) {
+    window.alert(error.message || "JSON invalido.");
+  }
+});
+
 els.assistantButton.addEventListener("click", () => {
   els.assistantDrawer.classList.add("open");
   els.assistantDrawer.setAttribute("aria-hidden", "false");
+  document.body.classList.add("assistant-open");
 
   if (pendingDiagnostics.length > 0) {
     const main = pendingDiagnostics[0];
@@ -858,6 +2163,7 @@ els.assistantButton.addEventListener("click", () => {
 els.assistantClose.addEventListener("click", () => {
   els.assistantDrawer.classList.remove("open");
   els.assistantDrawer.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("assistant-open");
 });
 
 els.sensorBack.addEventListener("click", resetSensorView);
@@ -885,6 +2191,10 @@ els.chatForm.addEventListener("submit", async (event) => {
 
 setTheme(localStorage.getItem("simmaq-theme") || "dark");
 tickClock();
+populateMachineFilter();
+populateEditorSelects();
+renderEditorImageTabs();
+updateEditorInspector();
 renderSensorOverlay();
 loadComponentMap();
 loadDashboard();

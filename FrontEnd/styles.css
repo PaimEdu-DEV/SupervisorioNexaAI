@@ -136,6 +136,18 @@ button {
   cursor: pointer;
 }
 
+.editor-entry {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+  color: var(--muted);
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .ai-button {
   position: relative;
   cursor: pointer;
@@ -422,6 +434,10 @@ button {
   pointer-events: none;
 }
 
+.machine-view.editor-active .sensor-overlay {
+  pointer-events: auto;
+}
+
 .sensor-marker {
   position: absolute;
   width: 18px;
@@ -478,6 +494,23 @@ button {
   height: 22px;
 }
 
+.sensor-marker.atuador {
+  border-radius: 5px;
+}
+
+.sensor-marker.editor-selected {
+  outline: 2px solid #ffffff;
+  outline-offset: 4px;
+}
+
+.machine-view.editor-active .sensor-marker {
+  cursor: grab;
+}
+
+.machine-view.editor-active .sensor-marker:active {
+  cursor: grabbing;
+}
+
 .sensor-marker.selected strong {
   top: calc(100% + 10px);
   padding: 6px 10px;
@@ -511,6 +544,31 @@ button {
   display: inline-flex;
 }
 
+.machine-view.editor-active .sensor-back {
+  display: none;
+}
+
+.editor-canvas-hint {
+  position: absolute;
+  left: 22px;
+  top: 18px;
+  z-index: 5;
+  display: none;
+  min-height: 32px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, #ffcf5a 60%, var(--line));
+  border-radius: 7px;
+  background: rgba(34, 25, 5, .8);
+  color: #ffdd75;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.machine-view.editor-active .editor-canvas-hint {
+  display: inline-flex;
+}
+
 .sensor-detail-card {
   position: absolute;
   right: 18px;
@@ -531,6 +589,10 @@ button {
 .machine-view.sensor-focus .sensor-detail-card {
   display: block;
   animation: detailCardIn .28s ease-out both;
+}
+
+body.assistant-open .sensor-detail-card {
+  right: min(470px, calc(100% - 356px));
 }
 
 .sensor-detail-card > span,
@@ -596,7 +658,6 @@ button {
   padding: 0;
   color: #d9e7f7;
   font-size: 12px;
-}
 }
 
 .tag-list,
@@ -853,6 +914,186 @@ button {
 
 .inspection-panel.open {
   display: grid;
+}
+
+.editor-toolbar {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 30;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, #ffcf5a 52%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .38);
+  backdrop-filter: blur(14px);
+}
+
+.editor-toolbar.open {
+  display: flex;
+}
+
+.editor-toolbar > strong {
+  color: #ffdd75;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.editor-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.editor-toolbar button,
+.editor-tabs button,
+.editor-machine-filter,
+.editor-inspector button,
+.editor-dialog button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.editor-machine-filter {
+  max-width: 210px;
+}
+
+.editor-tabs button.active {
+  border-color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+}
+
+.editor-toolbar #editorExit,
+.editor-inspector #editorRemoveMarker {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--line));
+}
+
+.editor-toolbar span {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.editor-inspector {
+  position: fixed;
+  right: 14px;
+  bottom: 78px;
+  z-index: 31;
+  display: none;
+  width: min(330px, calc(100vw - 28px));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .36);
+  backdrop-filter: blur(14px);
+}
+
+.editor-inspector.open {
+  display: grid;
+}
+
+.editor-inspector label,
+.editor-dialog label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.editor-inspector select,
+.editor-dialog select,
+.editor-dialog textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px;
+  outline: none;
+}
+
+.editor-position-readout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.editor-position-readout span {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.editor-position-readout strong {
+  color: var(--text);
+}
+
+.editor-inspector-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.editor-inspector-actions button {
+  flex: 1;
+}
+
+.editor-dialog {
+  width: min(520px, calc(100vw - 28px));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
+}
+
+.editor-dialog::backdrop {
+  background: rgba(0, 0, 0, .52);
+}
+
+.editor-dialog form {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.editor-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-json-dialog textarea {
+  min-height: 260px;
+  resize: vertical;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .inspection-step {

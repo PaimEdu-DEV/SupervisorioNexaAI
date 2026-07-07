@@ -24,7 +24,14 @@ public class IndustrialAgentOrchestrator(
 
         detectedComponent ??= componentMap.Find(technicalComponent?.ComponentId);
 
+        var machineWideQuestion = IsMachineWideQuestion(Normalize(request.Question));
         var intent = ClassifyIntent(request.Question, detectedComponent is not null || technicalComponent is not null);
+        if (machineWideQuestion)
+        {
+            detectedComponent = null;
+            technicalComponent = null;
+            currentComponentId = null;
+        }
         if (intent is AgentIntent.ProductionQuery or AgentIntent.History &&
             string.IsNullOrWhiteSpace(currentComponentId) &&
             !HasComponentKeyword(request.Question))
@@ -211,7 +218,13 @@ public class IndustrialAgentOrchestrator(
             return AgentIntent.History;
         }
 
-        if (ContainsAny(q, "o que faz", "oque faz", "que essa maquina faz", "qual funcao", "funcao", "como funciona", "explique o ciclo", "classificacao", "esta maquina", "essa maquina", "bancada"))
+        if (IsMachineWideQuestion(q))
+        {
+            return AgentIntent.MachineInfo;
+        }
+
+        if (ContainsAny(q,
+            "o que faz", "oque faz", "qual funcao", "qual e a funcao", "qual a funcao", "para que serve", "como funciona"))
         {
             return hasComponentContext || ContainsAny(q, "sensor", "ventosa", "esteira", "cilindro", "botao")
                 ? AgentIntent.ComponentInfo
@@ -468,6 +481,12 @@ public class IndustrialAgentOrchestrator(
 
     private static bool IsStatusQuestion(string value) =>
         ContainsAny(value, "status", "estado atual", "situacao", "como esta", "como ta", "esta online", "maquina ligada");
+
+    private static bool IsMachineWideQuestion(string value) =>
+        ContainsAny(value,
+            "o que a maquina faz", "o que essa maquina faz", "que essa maquina faz", "maquina faz",
+            "explique o ciclo", "classificacao", "esta maquina", "essa maquina", "bancada") &&
+        !HasComponentKeyword(value);
 
     private static string BuildMachineExplanationFallback()
     {

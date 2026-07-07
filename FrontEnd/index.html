@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260707-machine-question-fix">
 </head>
 <body>
   <div class="app-shell">
@@ -32,6 +32,7 @@
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="Alternar tema">
           <span id="themeIcon">Escuro</span>
         </button>
+        <button class="editor-entry" id="editorEntry" type="button">Modo Editor</button>
         <div class="clock">
           <strong id="currentTime">--:--:--</strong>
           <span id="currentDate">--/--/----</span>
@@ -114,6 +115,7 @@
           <div class="component-marker" id="componentMarker" aria-hidden="true"></div>
           <img id="machineImage" src="img/BancadaCPe%C3%A7a.png-removebg-preview.png" alt="Bancada SIMMAQ NXA">
           <div class="sensor-overlay" id="sensorOverlay" aria-hidden="true"></div>
+          <div class="editor-canvas-hint" id="editorCanvasHint" aria-hidden="true">MODO EDITOR ATIVO</div>
           <button class="sensor-back" id="sensorBack" type="button">Voltar</button>
           <aside class="sensor-detail-card" id="sensorDetailCard" aria-hidden="true">
             <span id="sensorDetailArea">Sensor</span>
@@ -159,6 +161,42 @@
       </aside>
     </main>
   </div>
+
+  <section class="editor-toolbar" id="editorToolbar" aria-hidden="true">
+    <strong>MODO EDITOR ATIVO</strong>
+    <div class="editor-tabs" id="editorImageTabs" aria-label="Imagem em edição"></div>
+    <select class="editor-machine-filter" id="editorMachineFilter" aria-label="Filtrar por bancada">
+      <option value="all">Todos</option>
+    </select>
+    <button id="editorNewMarker" type="button">Novo marcador</button>
+    <button id="editorSaveLayout" type="button">Salvar Layout</button>
+    <button id="editorCopyJson" type="button">Copiar JSON</button>
+    <button id="editorExportLayout" type="button">Exportar Layout</button>
+    <button id="editorImportJson" type="button">Importar JSON</button>
+    <button id="editorExit" type="button">Sair do Editor</button>
+    <span id="editorStatus">Layout local</span>
+  </section>
+
+  <aside class="editor-inspector" id="editorInspector" aria-hidden="true">
+    <div class="assistant-header">
+      <div>
+        <span>Marcador selecionado</span>
+        <strong id="editorSelectedTitle">Nenhum</strong>
+      </div>
+    </div>
+    <label>
+      <span>Sensor / Atuador</span>
+      <select id="editorSensorSelect"></select>
+    </label>
+    <div class="editor-position-readout">
+      <span>X <strong id="editorPosX">--</strong>%</span>
+      <span>Y <strong id="editorPosY">--</strong>%</span>
+    </div>
+    <div class="editor-inspector-actions">
+      <button id="editorDuplicateMarker" type="button">Duplicar</button>
+      <button id="editorRemoveMarker" type="button">Remover</button>
+    </div>
+  </aside>
 
   <aside class="assistant-drawer" id="assistantDrawer" aria-hidden="true">
     <div class="assistant-header">
@@ -210,6 +248,48 @@
     </div>
   </aside>
 
-  <script src="app.js"></script>
+  <dialog class="editor-dialog" id="editorMarkerDialog">
+    <form method="dialog" id="editorMarkerForm">
+      <div class="assistant-header">
+        <div>
+          <span>Novo marcador</span>
+          <strong>Vincular ao cadastro oficial</strong>
+        </div>
+        <button value="cancel" type="submit" aria-label="Fechar">X</button>
+      </div>
+      <label>
+        <span>Selecionar Sensor / Atuador</span>
+        <select id="editorNewSensor"></select>
+      </label>
+      <label>
+        <span>Imagem</span>
+        <select id="editorNewImage"></select>
+      </label>
+      <menu>
+        <button value="cancel" type="submit">Cancelar</button>
+        <button id="editorCreateMarker" value="default" type="submit">Criar marcador</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog class="editor-dialog editor-json-dialog" id="editorJsonDialog">
+    <form method="dialog" id="editorJsonForm">
+      <div class="assistant-header">
+        <div>
+          <span>Importar JSON</span>
+          <strong>Layout de calibração</strong>
+        </div>
+        <button value="cancel" type="submit" aria-label="Fechar">X</button>
+      </div>
+      <textarea id="editorJsonInput" spellcheck="false" placeholder="Cole aqui o JSON exportado pelo editor"></textarea>
+      <menu>
+        <button value="cancel" type="submit">Cancelar</button>
+        <button id="editorApplyJson" value="default" type="submit">Importar layout</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="sensorRegistry.js?v=20260707-machine-question-fix"></script>
+  <script src="app.js?v=20260707-machine-question-fix"></script>
 </body>
 </html>
