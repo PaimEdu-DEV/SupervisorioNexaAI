@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SupervisorioSIMMAQ_NXA.Data;
 using SupervisorioSIMMAQ_NXA.Dtos;
 using SupervisorioSIMMAQ_NXA.Models;
+using SupervisorioSIMMAQ_NXA.Options;
 
 namespace SupervisorioSIMMAQ_NXA.Services;
 
@@ -10,6 +12,7 @@ public class IndustrialAgentOrchestrator(
     AiDiagnosticClient aiDiagnosticClient,
     MachineComponentMap componentMap,
     AssistantConversationMemory conversationMemory,
+    IOptions<AiDiagnosticOptions> aiOptions,
     ILogger<IndustrialAgentOrchestrator> logger)
 {
     private const string OutOfScopeAnswer = "Sou um Assistente Inteligente especializado exclusivamente nesta máquina industrial.";
@@ -48,7 +51,7 @@ public class IndustrialAgentOrchestrator(
         var brain = BrainFor(intent);
         var context = await BuildContextAsync(intent, request, detectedComponent, technicalComponent, cancellationToken);
 
-        if (technicalComponent is not null && detectedComponent is not null)
+        if (intent == AgentIntent.Technical || (detectedComponent is not null && ShouldAnswerComponentDirectly(request.Question, intent)))
         {
             var sensorResponse = BuildFallback(intent, brain, detectedComponent, technicalComponent, context, request.Question);
             conversationMemory.Update(request.ConversationId, request.Question, sensorResponse.Message, sensorResponse.ComponentId);
@@ -59,7 +62,7 @@ public class IndustrialAgentOrchestrator(
         {
             question = request.Question,
             mode = request.Mode,
-            model = "llama3.2:3b",
+            model = Environment.GetEnvironmentVariable("MODEL_NAME") ?? aiOptions.Value.Model,
             intent = IntentValue(intent),
             brain = BrainValue(brain),
             expectedResponse = "structured_json",
@@ -140,7 +143,8 @@ public class IndustrialAgentOrchestrator(
             machineKnowledge = new
             {
                 description = MachineTechnicalKnowledge.MachineDescription,
-                operationalCycle = MachineTechnicalKnowledge.OperationalCycle
+                operationalCycle = MachineTechnicalKnowledge.OperationalCycle,
+                diagnostics = MachineTechnicalKnowledge.DiagnosticKnowledge
             },
             component,
             technicalComponent,
@@ -302,6 +306,13 @@ public class IndustrialAgentOrchestrator(
             string.IsNullOrWhiteSpace(response.Message);
     }
 
+    private static bool ShouldAnswerComponentDirectly(string question, AgentIntent intent)
+    {
+        var normalized = Normalize(question);
+        return intent is AgentIntent.Technical or AgentIntent.ComponentInfo or AgentIntent.VisualLocation ||
+            ContainsAny(normalized, "di", "do", "ao", "mw", "sensor", "atuador", "cilindro", "ventosa", "esteira", "botao");
+    }
+
     private IndustrialAgentResponse BuildFallback(
         AgentIntent intent,
         AgentBrain brain,
@@ -316,10 +327,14 @@ public class IndustrialAgentOrchestrator(
             AgentIntent.MachineInfo => BuildMachineExplanationFallback(),
             AgentIntent.ComponentInfo when technicalComponent is not null =>
                 $"{technicalComponent.Name}: {technicalComponent.Description}",
+            AgentIntent.ComponentInfo when component is not null =>
+                $"{component.Name}: {component.Description}",
             AgentIntent.VisualLocation when component is not null =>
                 $"{component.Name} fica na area {component.Area} da bancada. Use o destaque visual para localizar o componente na maquina.",
             AgentIntent.Technical when technicalComponent is not null =>
                 $"{technicalComponent.Name}\nTag: {technicalComponent.Tag}\nEndereco: {technicalComponent.Address}\nDescricao: {technicalComponent.Description}",
+            AgentIntent.Technical when component is not null =>
+                $"{component.Name}\nTag: {component.Tag}\nArea: {component.Area}\nDescricao: {component.Description}",
             AgentIntent.ProductionQuery =>
                 "Ainda nao existem dados de producao suficientes para responder essa pergunta. Para responder com precisao, preciso de historico de producao, contadores atualizados ou leituras registradas da esteira.",
             AgentIntent.History =>

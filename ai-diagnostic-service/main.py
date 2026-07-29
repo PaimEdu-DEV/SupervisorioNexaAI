@@ -1,5 +1,7 @@
 import json
 import os
+from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -7,11 +9,18 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 
+OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+MODEL_NAME = os.getenv("MODEL_NAME", os.getenv("AI_MODEL", "qwen3:8b"))
+AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama").lower()
 OLLAMA_CHAT_URL = os.getenv("OLLAMA_CHAT_URL", "http://localhost:11434/api/chat")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-OUT_OF_CONTEXT_ANSWER = "Sou um Assistente Inteligente especializado exclusivamente nesta máquina industrial."
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", MODEL_NAME)
+OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "360"))
+OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "90"))
+OUT_OF_CONTEXT_ANSWER = "Sou um Assistente Inteligente especializado exclusivamente nesta maquina industrial."
+SYSTEM_PROMPT_PATH = Path(__file__).with_name("system_prompt.md")
 
-app = FastAPI(title="ai-diagnostic-service", version="2.0.0")
+app = FastAPI(title="ai-diagnostic-service", version="3.0.0")
 
 
 class DiagnosticRequest(BaseModel):
@@ -62,6 +71,87 @@ class DiagnosticResponse(BaseModel):
     openHistory: bool = False
 
 
+class AIProvider(ABC):
+    name: str
+
+    @abstractmethod
+    async def generate_json(self, request: DiagnosticRequest, system_prompt: str, user_payload: dict[str, Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+
+class OpenAIProvider(AIProvider):
+    name = "openai"
+
+    async def generate_json(self, request: DiagnosticRequest, system_prompt: str, user_payload: dict[str, Any]) -> dict[str, Any]:
+        if not OPENAI_API_KEY:
+            raise RuntimeError("OPENAI_API_KEY nao configurada.")
+
+        model = request.model or MODEL_NAME
+        payload = {
+            "model": model,
+            "instructions": system_prompt,
+            "input": json.dumps(user_payload, ensure_ascii=False),
+        }
+
+        async with httpx.AsyncClient(timeout=OPENAI_TIMEOUT_SECONDS) as client:
+            response = await client.post(
+                OPENAI_RESPONSES_URL,
+                headers={
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            response.raise_for_status()
+
+        return extract_json(extract_openai_text(response.json()))
+
+
+class OllamaProvider(AIProvider):
+    name = "ollama"
+
+    async def generate_json(self, request: DiagnosticRequest, system_prompt: str, user_payload: dict[str, Any]) -> dict[str, Any]:
+        payload = {
+            "model": request.model or OLLAMA_MODEL,
+            "stream": False,
+            "format": "json",
+            "think": False,
+            "keep_alive": os.getenv("OLLAMA_KEEP_ALIVE", "30m"),
+            "options": {
+                "temperature": float(os.getenv("OLLAMA_TEMPERATURE", "0.1")),
+                "top_p": float(os.getenv("OLLAMA_TOP_P", "0.75")),
+                "top_k": int(os.getenv("OLLAMA_TOP_K", "30")),
+                "repeat_penalty": float(os.getenv("OLLAMA_REPEAT_PENALTY", "1.08")),
+                "num_ctx": int(os.getenv("OLLAMA_NUM_CTX", "4096")),
+                "num_predict": int(os.getenv("OLLAMA_NUM_PREDICT", "384")),
+            },
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": "/no_think\n" + json.dumps(user_payload, ensure_ascii=False)},
+            ],
+        }
+
+        async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT_SECONDS) as client:
+            response = await client.post(OLLAMA_CHAT_URL, json=payload)
+            response.raise_for_status()
+
+        return extract_json(response.json().get("message", {}).get("content", ""))
+
+
+def provider() -> AIProvider:
+    if AI_PROVIDER == "openai":
+        return OpenAIProvider()
+
+    return OllamaProvider()
+
+
+def request_model_name(active_provider: AIProvider) -> str:
+    if active_provider.name == "openai":
+        return MODEL_NAME
+
+    return OLLAMA_MODEL
+
+
 def merged_context(request: DiagnosticRequest) -> dict[str, Any]:
     if request.context:
         return request.context
@@ -107,74 +197,40 @@ def valid_component_ids(context: dict[str, Any]) -> set[str]:
     return ids
 
 
-def build_messages(request: DiagnosticRequest) -> list[dict[str, str]]:
+def build_system_prompt(request: DiagnosticRequest) -> str:
     context = merged_context(request)
     allowed_ids = sorted(valid_component_ids(context))
+    template = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+    return template.format(
+        intent=request.intent,
+        brain=request.brain,
+        out_of_context_answer=OUT_OF_CONTEXT_ANSWER,
+        allowed_component_ids=json.dumps(allowed_ids, ensure_ascii=False),
+    )
 
-    system_prompt = f"""
-Voce e o Assistente Inteligente de Diagnostico Industrial do sistema Nexa.
-Seu nome na interface e Nexa AI.
-Voce e especialista exclusivamente nesta bancada classificadora de pecas.
-Voce nao e um chatbot generico.
 
-Intencao classificada pela API: {request.intent}
-Cerebro selecionado pela API: {request.brain}
-
-Regras obrigatorias:
-- Responda somente sobre maquina, sensores, atuadores, alarmes, producao, historico, diagnostico, CLP, MQTT, automacao da bancada e componentes cadastrados.
-- Use apenas as informacoes enviadas no contexto.
-- Nunca invente numeros, tags, enderecos, causas, diagnosticos ou historico.
-- Se faltar dado, explique exatamente qual dado esta faltando em missingData.
-- Nao responda tudo como diagnostico: respeite a intencao e o cerebro selecionados.
-- Se a pergunta estiver fora do contexto da maquina, responda exatamente: {OUT_OF_CONTEXT_ANSWER}
-- Para perguntas de funcionamento geral, explique a bancada e nao use o ultimo diagnostico como tema principal.
-- Para perguntas de producao, use somente contadores, leituras e historicos enviados.
-- Para perguntas tecnicas, use technicalMap, componentMap e componentes cadastrados.
-- Para localizacao visual, retorne componentId e showHighlightButton=true quando o componente existir.
-- Para diagnostico, explique evidencias, causas possiveis e ordem de verificacao.
-- Nao use markdown.
-- Responda em portugues claro e direto.
-
-IDs validos para componentId:
-{json.dumps(allowed_ids, ensure_ascii=False)}
-
-Retorne somente JSON valido neste formato:
-{{
-  "message": "",
-  "answer": "",
-  "intent": "diagnostic | machine_info | production_query | component_info | visual_location | history | technical | out_of_scope",
-  "brain": "diagnostic | machine_knowledge | database | technical",
-  "severity": "info | warning | critical",
-  "component": null,
-  "componentId": null,
-  "showHighlightButton": false,
-  "showInspectionButton": false,
-  "showSeeButton": false,
-  "showInspectButton": false,
-  "probabilities": [],
-  "recommendedActions": [],
-  "quickActions": [],
-  "missingData": [],
-  "usedSources": [],
-  "needsMaintenance": false,
-  "openManual": false,
-  "openHistory": false,
-  "confidence": 0.0
-}}
-""".strip()
-
-    user_payload = {
+def build_user_payload(request: DiagnosticRequest) -> dict[str, Any]:
+    return {
         "question": request.question,
         "intent": request.intent,
         "brain": request.brain,
         "conversation": request.conversation,
-        "context": context,
+        "context": merged_context(request),
     }
 
-    return [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
-    ]
+
+def extract_openai_text(data: dict[str, Any]) -> str:
+    if isinstance(data.get("output_text"), str):
+        return data["output_text"]
+
+    parts: list[str] = []
+    for item in data.get("output", []):
+        for content in item.get("content", []):
+            text = content.get("text")
+            if isinstance(text, str):
+                parts.append(text)
+
+    return "\n".join(parts)
 
 
 def extract_json(content: str) -> dict[str, Any]:
@@ -191,7 +247,7 @@ def extract_json(content: str) -> dict[str, Any]:
     return json.loads(content)
 
 
-def normalize_response(parsed: dict[str, Any], request: DiagnosticRequest) -> DiagnosticResponse:
+def normalize_response(parsed: dict[str, Any], request: DiagnosticRequest, source: str) -> DiagnosticResponse:
     context = merged_context(request)
     valid_ids = valid_component_ids(context)
 
@@ -225,7 +281,7 @@ def normalize_response(parsed: dict[str, Any], request: DiagnosticRequest) -> Di
         component=parsed.get("component"),
         componentId=str(component_id) if component_id else None,
         confidence=max(0.0, min(1.0, float(parsed.get("confidence") or 0.0))),
-        source="ollama",
+        source=source,
         showHighlightButton=show_highlight,
         showInspectionButton=show_inspection,
         showSeeButton=show_highlight,
@@ -242,8 +298,14 @@ def normalize_response(parsed: dict[str, Any], request: DiagnosticRequest) -> Di
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok", "model": OLLAMA_MODEL}
+async def health() -> dict[str, Any]:
+    active_provider = provider()
+    return {
+        "status": "ok",
+        "provider": active_provider.name,
+        "model": request_model_name(active_provider),
+        "openaiApiKeyConfigured": bool(OPENAI_API_KEY),
+    }
 
 
 @app.post("/diagnose", response_model=DiagnosticResponse)
@@ -257,23 +319,10 @@ async def diagnose(request: DiagnosticRequest) -> DiagnosticResponse:
             source="context-guard",
         )
 
-    model = request.model or OLLAMA_MODEL
-    payload = {
-        "model": model,
-        "stream": False,
-        "format": "json",
-        "options": {
-            "temperature": 0.05,
-            "top_p": 0.7,
-        },
-        "messages": build_messages(request),
-    }
-
-    async with httpx.AsyncClient(timeout=90) as client:
-        response = await client.post(OLLAMA_CHAT_URL, json=payload)
-        response.raise_for_status()
-
-    ollama_data = response.json()
-    content = ollama_data.get("message", {}).get("content", "")
-    parsed = extract_json(content)
-    return normalize_response(parsed, request)
+    active_provider = provider()
+    parsed = await active_provider.generate_json(
+        request=request,
+        system_prompt=build_system_prompt(request),
+        user_payload=build_user_payload(request),
+    )
+    return normalize_response(parsed, request, active_provider.name)

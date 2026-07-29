@@ -1983,7 +1983,7 @@ async function askAssistant(question) {
   } catch {
     thinkingMessage.remove();
     addStructuredMessage("assistant", {
-      message: "Não consegui consultar a IA agora. Verifique se a API, o serviço Python e o Ollama estão em execução.",
+      message: "Não consegui consultar a IA agora. Verifique se a API, o serviço Python, o Ollama e o modelo qwen3:8b estão em execução.",
       severity: "Warning",
       quickActions: [{ id: "refresh", label: "Atualizar Dados", enabled: true }]
     });
